@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#000000">
+
+    <title>My Events</title>
+    <style>
+        html, body {
+            touch-action: manipulation;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        input, select, textarea {
+            font-size: 16px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f5f5;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            min-height: 100vh;
+        }
+        
+        #eventContainer {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            height: 100%;
+            flex-grow: 1;
+        }
+
+        .header {
+            background-color: #1a1a1a;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: calc(15px + env(safe-area-inset-top));
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .standalone-mode .header {
+            padding-top: calc(15px + env(safe-area-inset-top));
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .help-btn {
+            color: white;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: #0052cc;
+            color: white;
+            position: sticky;
+            top: calc(50px + env(safe-area-inset-top));
+            z-index: 9;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px 0;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: white;
+        }
+
+        .event-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px 16px 80px 16px; /* Updated padding */
+            min-height: 0;
+        }
+
+        .event-card {
+            position: relative;
+            height: 220px;
+            overflow: hidden;
+            cursor: pointer;
+            margin-bottom: 16px; /* Added margin between cards */
+        }
+
+        .event-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .event-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+            padding: 20px;
+            color: white;
+        }
+
+        .event-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .event-details {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .ticket-count {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .ticket-count svg {
+            margin-right: 5px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid #e0e0e0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            text-decoration: none;
+            padding: 8px 12px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: #024ddf;
+        }
+
+        .nav-item:hover {
+            color: #024ddf;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            fill: currentColor;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .no-events {
+            text-align: center;
+            padding: 50px 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>My Events</h1>
+        <a href="#" class="help-btn">Help</a>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab active">UPCOMING (<span id="upcomingCount">0</span>)</div>
+        <div class="tab">PAST (<span id="pastCount">0</span>)</div>
+    </div>
+    
+    <div class="event-container" id="eventContainer">
+        <!-- Events will be loaded dynamically -->
+    </div>
+    
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <span class="nav-label">Discover</span>
+        </a>
+        <a href="for-you.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <span class="nav-label">Favourites</span>
+        </a>
+        <a href="my-events.html" class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2 5c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5zm2 0v14h16V5H4zm8 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm-4-4h8v2H8V9zm0 4h8v2H8v-2z"/>
+            </svg>
+            <span class="nav-label">My Tickets</span>
+        </a>
+        <a href="sell.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+            </svg>
+            <span class="nav-label">Sell</span>
+        </a>
+        <a href="account.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span class="nav-label">My Account</span>
+        </a>
+    </nav>
+
+    <script src="subscription-enforcer.js"></script>
+
+    <script>
+        // Navigation functionality
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (this.href.includes('my-events.html')) {
+                    e.preventDefault();
+                }
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.navigator.standalone) {
+                document.body.classList.add('standalone-mode');
+            }
+            
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    if (this.textContent.includes('PAST')) {
+                        loadPastEvents();
+                    } else {
+                        loadUpcomingEvents();
+                    }
+                });
+            });
+            
+            loadTicketData();
+            loadUpcomingEvents();
+            
+            document.querySelector('.help-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = 'for-you.html';
+            });
+        });
+
+        function loadTicketData() {
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            console.log('Loaded tickets from localStorage:', tickets);
+            
+            const now = new Date();
+            let upcomingCount = 0;
+            let pastCount = 0;
+            
+            tickets.forEach(ticket => {
+                if (!ticket.id || !ticket.date) {
+                    console.warn('Invalid ticket data, skipping:', ticket);
+                    return;
+                }
+                const ticketDate = getTicketDateForComparison(ticket);
+                const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const ticketDateOnly = new Date(ticketDate.getFullYear(), ticketDate.getMonth(), ticketDate.getDate());
+                
+                console.log(`Ticket: ${ticket.title}, ID: ${ticket.id}, Date: ${ticket.date}, Parsed: ${ticketDate}, Is upcoming: ${ticketDateOnly >= nowDateOnly}`);
+                
+                if (ticketDateOnly >= nowDateOnly) {
+                    upcomingCount++;
+                } else {
+                    pastCount++;
+                }
+            });
+            
+            document.getElementById('upcomingCount').textContent = upcomingCount;
+            document.getElementById('pastCount').textContent = pastCount;
+        }
+
+        function loadUpcomingEvents() {
+            const container = document.getElementById('eventContainer');
+            container.innerHTML = '';
+            
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            console.log('Loading upcoming tickets:', tickets);
+            
+            const now = new Date();
+            const upcomingTickets = tickets.filter(ticket => {
+                if (!ticket.id || !ticket.date) {
+                    console.warn('Skipping invalid ticket:', ticket);
+                    return false;
+                }
+                const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const ticketDate = getTicketDateForComparison(ticket);
+                const ticketDateOnly = new Date(ticketDate.getFullYear(), ticketDate.getMonth(), ticketDate.getDate());
+                return ticketDateOnly >= nowDateOnly;
+            });
+            
+            upcomingTickets.sort((a, b) => {
+                const dateA = getTicketDateForComparison(a);
+                const dateB = getTicketDateForComparison(b);
+                return dateA - dateB;
+            });
+            
+            if (upcomingTickets.length === 0) {
+                container.innerHTML = `
+                    <div class="no-events">
+                        <p>You don't have any upcoming events.</p>
+                        <p>Tap "Help" to create a new event.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            upcomingTickets.forEach(ticket => {
+                const ticketCard = createTicketCard(ticket);
+                container.appendChild(ticketCard);
+            });
+        }
+
+        function loadPastEvents() {
+            const container = document.getElementById('eventContainer');
+            container.innerHTML = '';
+            
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            console.log('Loading past tickets:', tickets);
+            
+            const now = new Date();
+            const pastTickets = tickets.filter(ticket => {
+                if (!ticket.id || !ticket.date) {
+                    console.warn('Skipping invalid ticket:', ticket);
+                    return false;
+                }
+                const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const ticketDate = getTicketDateForComparison(ticket);
+                const ticketDateOnly = new Date(ticketDate.getFullYear(), ticketDate.getMonth(), ticketDate.getDate());
+                return ticketDateOnly < nowDateOnly;
+            });
+            
+            pastTickets.sort((a, b) => {
+                const dateA = getTicketDateForComparison(a);
+                const dateB = getTicketDateForComparison(b);
+                return dateB - dateA;
+            });
+            
+            if (pastTickets.length === 0) {
+                container.innerHTML = `
+                    <div class="no-events">
+                        <p>You don't have any past events.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            pastTickets.forEach(ticket => {
+                const ticketCard = createTicketCard(ticket);
+                container.appendChild(ticketCard);
+            });
+        }
+
+        function createTicketCard(ticket) {
+            const card = document.createElement('div');
+            card.className = 'event-card';
+            card.setAttribute('data-ticket-id', ticket.id);
+            
+            const imageUrl = ticket.bannerImage || 'https://source.unsplash.com/random/800x450/?concert';
+            
+            card.innerHTML = `
+                <div class="event-image" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;"></div>
+                <div class="event-overlay">
+                    <div class="event-title">${ticket.title || 'Untitled Ticket'}</div>
+                    <div class="event-details">${ticket.date || 'Date not available'} • ${ticket.venue || 'Unknown Venue'}</div>
+                    <div class="ticket-count">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="7" width="20" height="10" rx="2" ry="2"></rect>
+                            <path d="M16 3v4"></path>
+                            <path d="M8 3v4"></path>
+                            <path d="M16 17v4"></path>
+                            <path d="M8 17v4"></path>
+                        </svg>
+                        ${ticket.ticketCount || 0} Tickets
+                    </div>
+                </div>
+            `;
+            
+            card.addEventListener('click', function() {
+                localStorage.setItem('activeTicket', ticket.id);
+                localStorage.setItem('title', ticket.title || 'Untitled Ticket');
+                localStorage.setItem('date', ticket.date || '');
+                localStorage.setItem('venue', ticket.venue || 'Unknown Venue');
+                localStorage.setItem('ticketType', ticket.ticketType || '');
+                localStorage.setItem('section', ticket.section || '');
+                localStorage.setItem('row', ticket.row || '');
+                localStorage.setItem('seat', ticket.seat || '');
+                localStorage.setItem('ticketCount', ticket.ticketCount || '0');
+                localStorage.setItem('seatType', ticket.seatType || '');
+                localStorage.setItem('bannerImage', ticket.bannerImage || '');
+                localStorage.setItem('ticketPrice', ticket.ticketPrice || '0');
+                localStorage.setItem('serviceFee', ticket.serviceFee || '0');
+                localStorage.setItem('facilityCharge', ticket.facilityCharge || '0');
+                localStorage.setItem('processingFee', ticket.processingFee || '0');
+                localStorage.setItem('paymentDate', ticket.paymentDate || '');
+                localStorage.setItem('venueLocation', ticket.venueLocation || '');
+                localStorage.setItem('mapLocation', ticket.mapLocation || '');
+                localStorage.setItem('addons', JSON.stringify(ticket.addons || []));
+                localStorage.setItem('vipEarlyEntry', ticket.vipEarlyEntry || 'false');
+                localStorage.setItem('merchandisePackage', ticket.merchandisePackage || 'false');
+                localStorage.setItem('premiumParking', ticket.premiumParking || 'false');
+                localStorage.setItem('countdownTargetDate', ticket.countdownTargetDate || '');
+                localStorage.setItem('showCountdown', ticket.showCountdown ? 'true' : 'false');
+                localStorage.setItem('isCampingEvent', ticket.isCampingEvent ? 'true' : 'false');
+                localStorage.setItem('campingStartDate', ticket.campingStartDate || '');
+                localStorage.setItem('campingEndDate', ticket.campingEndDate || '');
+                localStorage.setItem('campingDateFormat', ticket.campingDateFormat || '');
+                localStorage.setItem('customDateFormat', ticket.customDateFormat || '');
+                localStorage.setItem('parseableDate', ticket.parseableDate || '');
+                
+                if (ticket.venueImage) {
+                    localStorage.setItem('venueImage', ticket.venueImage);
+                } else {
+                    localStorage.removeItem('venueImage');
+                }
+
+                console.log('Set ticket details for ID:', ticket.id);
+                window.location.href = 'ticket.html';
+            });
+            
+            return card;
+        }
+
+        function parseEventDate(dateStr) {
+            if (!dateStr) return new Date();
+            try {
+                const parsed = new Date(dateStr);
+                if (isNaN(parsed)) throw new Error('Invalid date');
+                return parsed;
+            } catch (e) {
+                console.error('Error parsing date:', dateStr, e);
+                return new Date();
+            }
+        }
+
+        function getTicketById(id) {
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            return tickets.find(ticket => ticket.id === id);
+        }
+
+        function getTicketDateForComparison(ticket) {
+            console.log('=== TICKET DATE COMPARISON ===');
+            console.log('Ticket:', ticket.title, 'ID:', ticket.id);
+            console.log('Is camping event:', ticket.isCampingEvent);
+            console.log('Parseable date:', ticket.parseableDate);
+            console.log('Display date:', ticket.date);
+            console.log('Event date:', ticket.eventDate);
+            console.log('Countdown target date:', ticket.countdownTargetDate);
+            
+            // Priority 1: countdownTargetDate
+            if (ticket.countdownTargetDate) {
+                const parsedDate = new Date(ticket.countdownTargetDate);
+                if (!isNaN(parsedDate)) {
+                    console.log('Using countdownTargetDate:', parsedDate);
+                    return parsedDate;
+                }
+            }
+            
+            // Priority 2: parseableDate (for camping events)
+            if (ticket.isCampingEvent && ticket.parseableDate) {
+                const parsedDate = new Date(ticket.parseableDate);
+                if (!isNaN(parsedDate)) {
+                    console.log('Using parseableDate for camping event:', parsedDate);
+                    return parsedDate;
+                }
+            }
+            
+            // Priority 3: eventDate
+            if (ticket.eventDate) {
+                const parsedDate = new Date(ticket.eventDate);
+                if (!isNaN(parsedDate)) {
+                    console.log('Using eventDate:', parsedDate);
+                    return parsedDate;
+                }
+            }
+            
+            // Fallback: parse display date
+            const parsedDate = parseEventDate(ticket.date);
+            console.log('Using parsed display date:', parsedDate);
+            return parsedDate;
+        }
+
+        // Prevent pinch zoom
+        document.addEventListener('touchmove', function(event) {
+            if (event.scale !== 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        // Prevent double-tap zoom
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        // Debugging: Log localStorage on load
+        console.log('Initial localStorage:', {
+            tickets: JSON.parse(localStorage.getItem('tickets') || '[]'),
+            bannerImage: localStorage.getItem('bannerImage'),
+            countdownTargetDate: localStorage.getItem('countdownTargetDate'),
+            campingParseableDate: localStorage.getItem('campingParseableDate')
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered for scope:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+
+    <script>
+        if (window.matchMedia('(display-mode: browser)').matches && !sessionStorage.getItem('pwaRedirected')) {
+            sessionStorage.setItem('pwaRedirected', 'true');
+            const intentUrl = `intent://${window.location.host}#Intent;package=com.android.chrome;scheme=https;end`;
+            setTimeout(() => {
+                window.location.href = intentUrl;
+            }, 500);
+        }
+    </script>
+
+    <script>
+        (function() {
+            let startY = 0;
+            document.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (e.scale !== 1 && e.touches.length > 1) {
+                    e.preventDefault();
+                }
+                const y = e.touches[0].clientY;
+                const isVerticalScroll = Math.abs(y - startY) > Math.abs(e.touches[0].clientX - startY);
+                if (isVerticalScroll) {
+                    return;
+                }
+            }, { passive: false });
+
+            let lastTap = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTap < 300) {
+                    e.preventDefault();
+                }
+                lastTap = now;
+            }, { passive: false });
+
+            document.documentElement.style.touchAction = 'pan-y';
+        })();
+    </script>
+
+    <script>
+        (function() {
+            if (/Android/.test(navigator.userAgent)) {
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    html, body {
+                        touch-action: pan-y !important;
+                        -ms-touch-action: pan-y !important;
+                        overflow-y: auto !important;
+                    }
+                    #eventContainer {
+                        overflow-y: auto !important;
+                    }
+                `;
+                document.head.appendChild(style);
+
+                document.addEventListener('touchmove', function(e) {
+                    if (e.scale !== 1 && e.touches.length > 1) {
+                        e.preventDefault();
+                    } else {
+                        e.stopPropagation();
+                    }
+                }, { passive: false, capture: true });
+
+                document.body.style.overflowY = 'auto';
+                const eventContainer = document.getElementById('eventContainer');
+                if (eventContainer) {
+                    eventContainer.style.overflowY = 'auto';
+                }
+
+                console.log('Android scrolling fix applied');
+            }
+        })();
+    </script>
+</body>
+</html>

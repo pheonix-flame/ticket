@@ -1,0 +1,3422 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- <script>
+(function() {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+  const authToken = localStorage.getItem('authToken');
+
+  if (!isStandalone && !window.location.pathname.endsWith('auth.html') && !authToken) {
+    window.location.href = 'auth.html';
+  }
+})();
+</script>   -->
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="theme-color" content="#000000" />
+    <!-- Add Swiper CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/swiper/swiper-bundle.min.css"
+    />
+
+    <!-- Cache busting meta tags -->
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <!-- PWA Meta Tags -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#005ea6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Ticketmaster" />
+
+    <!-- PWA Links -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="assets/icon.png" />
+    <title>My Tickets</title>
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+
+    <style>
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      body {
+          background-color: #f5f5f5;
+          color: #eee;
+          font-size: 16px;
+          font-weight: bold;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          /* Removed position fixed to allow scrolling and standalone PWA behavior */
+          /* position: fixed; */
+          width: 100%;
+          overflow-y: auto;
+      }
+
+      .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 15px;
+          background-color: rgba(5, 0, 0, 0.948);
+          border-bottom: 1px solid #000000;
+          position: fixed;
+          top: 0;
+          width: 100%;
+          z-index: 99;
+          height: 40px;
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+          font-weight: 600;
+      }
+
+      
+
+      @media (max-width: 600px) {
+          .header {
+              margin-top: 19px;
+              padding: 6px 10px !important;
+              /* Less vertical padding */
+              height: 36px !important;
+              /* Shorter header */
+          }
+
+          .header>div,
+          .header .close,
+          .header .help {
+              font-size: 20px !important;
+              /* Adjust font size for compactness */
+          }
+
+
+          .close {
+              font-size: 25px;
+              cursor: pointer;
+              color: #eee;
+          }
+
+          .help {
+              font-size: 20px;
+              cursor: pointer;
+              color: #eee;
+              text-decoration: none;
+          }
+
+          .tabs {
+              display: flex;
+              background-color: #1a52ed;
+              color: white;
+              margin-top: 60px;
+              /* Add margin to account for fixed header */
+              position: relative;
+          }
+
+          .tabs::before {
+              content: "";
+              position: absolute;
+              top: -60px;
+              left: 0;
+              right: 0;
+              height: 60px;
+              background-color: black;
+              z-index: -1;
+          }
+
+          .tabs div {
+              flex: 1;
+              text-align: center;
+              padding: 15px;
+              cursor: pointer;
+          }
+
+          .tabs div.active {
+              border-bottom: 3px solid white;
+              font-weight: bold;
+          }
+
+          .ticket-container {
+              flex: 1;
+              overflow-y: auto;
+              padding: 1px;
+              width: 100%;
+              /* Increased width to reduce left gap */
+              margin-left: auto;
+              margin-right: auto;
+              max-width: 100%;
+              /* Set a maximum width for better readability */
+
+          }
+
+          .ticket-card {
+              background-color: white;
+              border-radius: 15px;
+              overflow: hidden;
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+              margin-bottom: 20px;
+              margin-left: 15px;
+              margin-right: 15px;
+              height: 520px;
+              width: calc(90% - 30px);
+              box-sizing: border-box;
+              padding: 0;
+              position: relative;
+          }
+
+          .ticket-card-underline {
+              width: 93%;
+              height: 1.5px;
+              background: #1a52ed;
+              border-radius: 2px;
+              position: absolute;
+              bottom: 0;
+              left: 50%;
+              transform: translateX(-50%);
+          }
+        }
+          @media (max-width: 480px) {
+              .ticket-card {
+                  width: 87% !important;
+                  margin-left: auto !important;
+                  margin-right: auto !important;
+                  padding-left: 0px !important;
+                  padding-right: 0px !important;
+              }
+          }
+
+          .manage-tickets-text {
+              color: #1a52ed;
+              font-weight: bold;
+              text-align: center;
+              margin: 1px 0;
+              font-size: 12px;
+          }
+
+          .ticket-details-link {
+              margin-top: 8px;
+              /* Move ticket details text lower */
+              display: block;
+              text-align: center;
+              color: #1a52ed;
+              padding: 15px;
+              text-decoration: none;
+              border-top: 1px solid transparent;
+              /* Changed from #eee to transparent to remove red line */
+          }
+
+          .ticket-header {
+              background-color: #1a52ed;
+              color: white;
+              padding: 35px 30px;
+              text-align: center;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              display: flex;
+              width: 100%;
+              border-top-left-radius: 15px;
+              /* Match card corners */
+              border-top-right-radius: 15px;
+          }
+
+          .ticket-type-label {
+              font-size: 16px;
+              font-weight: lighter;
+              margin-top: -27px;
+              font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+              letter-spacing: 0.5px;
+          }
+
+          .seat-info-container {
+              display: flex;
+              justify-content: space-around;
+              margin-top: 5px;
+          }
+
+          .seat-column {
+              display: flex;
+              flex-direction: column;
+              padding-right: 0px
+          }
+
+          .seat-label {
+              font-size: 10px;
+              opacity: 0.9;
+              margin-bottom: 5px;
+          }
+
+          .seat-value {
+              font-size: 25px;
+              font-weight: bold;
+          }
+
+          /* For General Admission layout */
+          .general-admission-layout {
+              display: flex;
+              justify-content: space-between;
+              width: 100%;
+              flex-wrap: nowrap;
+              /* Prevent wrapping of flex items */
+          }
+
+          .general-admission-text {
+              padding-top: 2px;
+              font-size: 16px;
+              font-weight: 600;
+              /* Prevents text from wrapping */
+              display: inline-block;
+              /* Keeps text together */
+              text-align: left;
+          }
+
+          .ticket-section {
+              display: flex;
+              padding: 15px;
+          }
+
+          .section-label {
+              font-weight: bold;
+              margin-right: 10px;
+          }
+
+          .ticket-image {
+              width: 100%;
+              height: 200px;
+              background-size: cover;
+              background-position: center;
+              position: relative;
+          }
+
+          .tm-icon {
+              position: absolute;
+              top: 5px;
+              right: 5px;
+              width: 25px;
+              height: 25px;
+              background-image: url('assets/icon tm.webp');
+              background-size: contain;
+              background-repeat: no-repeat;
+              background-position: center;
+              filter: brightness(0) invert(1);
+              /* Makes the icon white */
+              z-index: 10;
+          }
+
+          .ticket-image-overlay {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+              color: white;
+              padding: 20px 15px;
+              text-align: center;
+              /* Center all text in the overlay */
+          }
+
+          .event-title {
+              font-size: larger;
+              font-weight: lighter;
+              margin-bottom: 5px;
+              text-align: center;
+              font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+              line-height: 1.2;
+          }
+
+          .event-details {
+              font-size: small;
+              text-align: center;
+              margin: 0 auto;
+              max-width: 90%;
+              font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
+              font-weight: 400;
+              line-height: 1.5;
+              white-space: nowrap;
+              word-break: break-all;
+              hyphens: auto;
+              letter-spacing: -0.5px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+          }
+
+          .countdown {
+              padding: 35px 15px;
+              text-align: center;
+          }
+
+          .countdown-label {
+              font-size: 16px;
+              margin-bottom: 10px;
+              color: #000000;
+              text-align: center;
+          }
+
+          .countdown-timer {
+              display: flex;
+              justify-content: space-around;
+              color: #000000;
+          }
+
+          .timer-unit {
+              text-align: center;
+          }
+
+          .timer-value {
+              font-size: 32px;
+              font-weight: bold;
+              color: #000000;
+          }
+
+          .timer-label {
+              font-size: 12px;
+              color: #eae7e7;
+          }
+
+          .ticket-details-link {
+              display: block;
+              text-align: center;
+              color: #1a52ed;
+              padding: 1px;
+              text-decoration: none;
+              border-top: 0px solid #eee;
+              margin-top: -10px;
+          }
+
+          .action-buttons {
+              display: flex;
+              padding: 15px;
+              gap: 10px;
+
+          }
+
+          .action-button {
+              flex: 1;
+              padding: 15px;
+              border: none;
+              border-radius: 5px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+              letter-spacing: 0.3px;
+          }
+
+          .transfer-button {
+              background-color: #1a52ed;
+              color: white;
+          }
+
+          .sell-button {
+              background-color: #ddd;
+              color: #333;
+          }
+
+          .orders-button {
+              background-color: #1a52ed;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              padding: 8px 12px;
+              font-size: 14px;
+              font-weight: 500;
+              cursor: pointer;
+              margin-right: 10px;
+              font-weight: bold;
+          }
+
+          .orders-button:hover {
+              background-color: #0d44d6;
+          }
+
+          .map-container {
+              height: 150px;
+              background-color: #f0f0f0;
+              overflow: hidden;
+          }
+
+          .static-map {
+              height: 100%;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+              padding: 15px;
+          }
+
+          .venue-info {
+              max-width: 100%;
+          }
+
+          .venue-info h3 {
+              margin: 0 0 10px 0;
+              font-size: 16px;
+          }
+
+          .venue-info p {
+              margin: 5px 0;
+              font-size: 14px;
+          }
+
+          .venue-info a {
+              color: #1a52ed;
+              text-decoration: none;
+              font-weight: bold;
+          }
+
+          .venue-image-container {
+              width: 100%;
+              height: 100%;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              overflow: hidden;
+              position: relative;
+          }
+
+          .venue-image {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+          }
+
+          .venue-overlay {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+              color: white;
+              padding: 15px;
+          }
+
+          .venue-info {
+              max-width: 100%;
+          }
+
+          .venue-info h3 {
+              margin: 0 0 10px 0;
+              font-size: 16px;
+          }
+
+          .venue-info p {
+              margin: 5px 0;
+              font-size: 14px;
+          }
+
+          .venue-info a {
+              color: #1a52ed;
+              text-decoration: none;
+              font-weight: bold;
+          }
+
+          /* Add error handling for venue images */
+          .venue-image-container img.venue-image {
+              transition: opacity 0.3s ease;
+          }
+
+          .venue-image-container img.venue-image[src*="data:image/"] {
+              /* Ensure data URLs are handled properly */
+              max-width: 100%;
+              max-height: 100%;
+          }
+
+          /* Fallback for when venue image fails to load */
+          .venue-image-container .fallback-map {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100%;
+              background-color: #f0f0f0;
+              color: #666;
+              font-size: 14px;
+          }
+
+          .pagination {
+              display: flex;
+              justify-content: center;
+              padding: 10px;
+          }
+
+          .pagination-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background-color: #ccc;
+              margin: 0 5px;
+          }
+
+          .pagination-dot.active {
+              background-color: #666;
+          }
+
+          /* Add these styles to your existing CSS */
+          .swiper-container {
+              width: 100%;
+              overflow: hidden;
+              position: relative;
+          }
+
+           /* Remove flex and scroll-snap properties */
+          /* .swiper-wrapper {
+              
+          } */
+
+          .swiper-slide {
+              width: 100%;
+              margin-right: 0;
+          }
+
+          .ticket-card {
+              margin: 15px;
+              margin-bottom: 5px;
+              box-sizing: border-box;
+          }
+
+          @media (max-width: 480px) {
+              .ticket-card {
+                  width: 87% !important;
+                  margin-left: auto !important;
+                  margin-right: auto !important;
+                  padding-left: 0px !important;
+                  padding-right: 0px !important;
+              }
+          }
+
+          .timer-value {
+              font-size: 32px;
+          }
+
+          .timer-label {
+              font-size: 12px;
+              color: #666;
+              padding: 6px 10px;
+              border: 1px solid rgba(246, 241, 241, 0.2);
+              border-radius: 1px;
+              min-width: 50px;
+              margin: 0 4px;
+              background-color: rgb(254, 251, 251);
+              box-sizing: border-box;
+              display: inline-block;
+          }
+
+          .ticket-details-link {
+              display: block;
+          }
+
+          /* Modal styles */
+          .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            /* Center vertically */
+            justify-content: center;
+            /* Center horizontally */
+          }
+
+          .modal-content {
+            background-color: white;
+            margin: 30% auto;
+            width: 85%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+          }
+
+          .modal-header {
+            background-color: #1a52ed;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+
+          .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+          }
+
+          .close-modal {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+          }
+
+          .addon-list {
+            padding: 15px;
+          }
+
+          .addon-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+          }
+
+          .addon-item:last-child {
+            border-bottom: none;
+          }
+
+          .addon-name {
+            font-weight: 500;
+            color: black;
+          }
+
+          .addon-status {
+            color: #1a52ed;
+            font-weight: 500;
+          }
+
+          .modal-footer {
+            padding: 15px;
+            text-align: center;
+            border-top: 1px solid #eee;
+          }
+
+          .modal-footer button {
+            background-color: #1a52ed;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+          }
+
+
+        .transfer-modal {
+          display: none;
+          position: fixed;
+          z-index: 2000;
+          left: 0;
+          top: 50px; 
+          width: 100%;
+          height: calc(100% - 40px);
+          background-color: rgba(0, 0, 0, 0.5); 
+          display: flex;
+          justify-content: center;
+          align-items: flex-end;
+        }
+
+
+        .transfer-modal-content {
+          background-color: #fff;
+          width: 100%;
+          height: 70vh; 
+          border-top-left-radius: 16px;
+          border-top-right-radius: 16px;
+          box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2);
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto; 
+        }
+
+        .drag-handle {
+          width: 40px;
+          height: 5px;
+          background-color: #ccc;
+          border-radius: 3px;
+          margin: 8px auto;
+        }
+
+
+
+        .transfer-header {
+          text-align: center;
+          padding: 20px 15px;
+          border-bottom: 1px solid #eee;
+        }
+
+        .transfer-header h2 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .safety-message {
+          display: flex;
+          align-items: center;
+          padding: 15px;
+          background-color: #f5f5f5;
+          border-bottom: 1px solid #eee;
+        }
+
+        .info-icon {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background-color: #6b7280;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-style: italic;
+          font-weight: bold;
+          margin-right: 10px;
+          flex-shrink: 0;
+        }
+
+        .safety-text {
+          font-size: 14px;
+          color: #333;
+          line-height: 1.3;
+        }
+
+        .transfer-section-info {
+          display: flex;
+          justify-content: space-between;
+          padding: 15px;
+          border-bottom: 1px solid #eee;
+        }
+
+        #transferSectionRow {
+          font-size: 16px;
+          font-weight: bold;
+          color: #000000;
+        }
+
+        .ticket-count {
+          display: flex;
+          align-items: center;
+          color: #000000;
+        }
+
+        .ticket-count:before {
+          content: "";
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>');
+          background-size: contain;
+          margin-right: 5px;
+        }
+
+        .transfer-seats {
+          display: flex;
+          flex-wrap: wrap;
+          padding: 20px 15px;
+          gap: 15px;
+        }
+
+        .seat-option {
+          width: calc(33.333% - 10px);
+        }
+
+        .seat-button {
+          width: 100%;
+          background-color: #0052cc;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          padding: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+
+        .seat-checkbox {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 30px;
+          height: 30px;
+          border: 2px solid #ccc;
+          border-radius: 50%;
+          margin: 0 auto;
+          cursor: pointer;
+        }
+
+        .seat-checkbox.selected {
+          border-color: #0052cc;
+          background-color: #0052cc;
+          position: relative;
+        }
+
+        .seat-checkbox.selected:after {
+          content: "";
+          position: absolute;
+          width: 12px;
+          height: 6px;
+          border-left: 2px solid white;
+          border-bottom: 2px solid white;
+          transform: rotate(-45deg);
+          top: 8px;
+        }
+
+        .transfer-footer {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 15px;
+          background-color: white;
+          border-top: 1px solid #eee;
+        }
+
+        .selected-count {
+          font-weight: bold;
+          color: black;
+        }
+
+        .transfer-to-btn {
+          background-color: #0052cc;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          padding: 10px 20px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          opacity: 0.5;
+        }
+
+        .transfer-to-btn:not([disabled]) {
+          opacity: 1;
+        }
+        
+      /* Add styles for the selected seats modal */
+
+      /* Fix loading overlay to cover whole page */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+      }
+
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #0052cc;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      .loading-text {
+        margin-top: 15px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* View Ticket Container Styles */
+      .view-ticket-container {
+        display: inline-flex;
+        background-color: #1a52ed;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        color: white;
+        padding: 9px 20px;
+        border-radius: 0px;
+        cursor: pointer;
+        text-decoration: none;
+        margin-top: 1.5rem;
+        width: 90%;
+        max-width: 300px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .view-ticket-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+
+      .view-ticket-text {
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      #selectedSeatsModal {
+        z-index: 2050;
+      }
+
+      /* Recipient modal styles */
+      .recipient-modal {
+        margin: 40% auto;
+        width: 85%;
+        max-width: 400px;
+      }
+
+      .recipient-options {
+        padding: 20px 0;
+        color: #000000;
+      }
+
+      .recipient-option {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+      }
+
+      .recipient-option:last-child {
+        border-bottom: none;
+      }
+
+      .option-icon {
+        margin-right: 15px;
+        color: #0052cc;
+      }
+
+      .option-text {
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      /* Manual entry form styles */
+      .manual-entry-form {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        z-index: 3000;
+        overflow-y: auto;
+      }
+
+      .form-header {
+        position: relative;
+        padding: 15px;
+        text-align: center;
+        border-bottom: 1px solid #080808;
+        color: #000000;
+      }
+
+      .form-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #000000;
+      }
+
+      .back-button {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        display: flex;
+        align-items: center;
+        color: #0052cc;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .form-content {
+        padding: 20px 15px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+        color: #000000;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+
+      .form-group input,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+
+      .form-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        padding: 15px;
+        background-color: white;
+        border-top: 1px solid #eee;
+      }
+
+      .cancel-btn,
+      .transfer-btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 0 5px;
+      }
+
+      .cancel-btn {
+        background-color: #f2f2f2;
+        color: #333;
+      }
+
+      .transfer-btn {
+        background-color: #0052cc;
+        color: white;
+      }
+    
+      /* Transfer Success Modal Styles */
+      .transfer-success-modal {
+        display: none;
+        position: fixed;
+        z-index: 3000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        overflow: auto;
+      }
+
+      .transfer-success-content {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .success-header {
+        background-color: #1a1a1a;
+        color: white;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+      }
+
+      .close-success {
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        margin-right: 15px;
+        cursor: pointer;
+      }
+
+      .event-title-container {
+        flex: 1;
+        text-align: center;
+      }
+
+      .success-ticket-card {
+        margin: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .seat-info {
+        display: flex;
+        padding: 15px;
+        background-color: #4b5563;
+        color: white;
+        text-align: center;
+      }
+
+      .seat-column {
+        flex: 10;
+        text-align: left-center;
+      }
+
+      .seat-label {
+        font-size: 14px;
+        font-weight: normal;
+        margin-bottom: 5px;
+      }
+
+      .seat-value {
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .ticket-image {
+        height: 180px;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+      }
+
+      .ticket-image-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+        color: white;
+        padding: 15px;
+      }
+
+      .sent-banner {
+        background-color: #22c55e;
+        color: white;
+        text-align: center;
+        padding: 8px;
+        font-weight: bold;
+      }
+
+      .transfer-details {
+        padding: 20px;
+        text-align: center;
+      }
+
+      .transfer-count {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #000000;
+      }
+
+      .recipient-name {
+        font-size: 16px;
+        margin-bottom: 5px;
+        color: #000000;
+      }
+
+      .transfer-status {
+        color: #666;
+        margin-bottom: 5px;
+      }
+
+      .order-number {
+        color: #666;
+        margin-bottom: 20px;
+      }
+
+      .cancel-transfer-btn {
+        color: #0066cc;
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      .bottom-actions {
+        display: flex;
+        justify-content: space-around;
+        padding: 15px;
+        margin-top: auto;
+      }
+
+      .bottom-actions .action-button {
+        background-color: #f0f0f0;
+        color: #333;
+        border: none;
+        padding: 12px 0;
+        width: 45%;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+      }
+    </style>
+
+
+    <!-- Service Worker Registration Script -->
+    <script>
+      function getActiveTicket() {
+        const tickets = JSON.parse(localStorage.getItem("tickets")) || [];
+        const activeTicketId = localStorage.getItem("activeTicket");
+        return tickets.find(t => t.id === activeTicketId) || null;
+      }
+
+
+      // Load active event from localStorage
+      document.addEventListener("DOMContentLoaded", function () {
+        const activeEventId = localStorage.getItem("activeEvent");
+        if (activeEventId) {
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          const activeEvent = events.find(
+            (event) => event.id === activeEventId
+          );
+
+          if (activeEvent) {
+            // Update ticket details with active event data
+            document.querySelector(".ticket-title").textContent =
+              activeEvent.title;
+            // Ensure the date includes a year
+            let dateStr = activeEvent.date;
+            if (!/\b\d{4}\b/.test(dateStr)) {
+              // If no 4-digit year, append current year
+              const now = new Date();
+              // Insert year after month and day if possible
+              const dateParts = dateStr.split(",");
+              if (dateParts.length >= 2) {
+                dateStr = `${dateParts[0]},${
+                  dateParts[1]
+                }, ${now.getFullYear()},${dateParts.slice(2).join(",")}`;
+              } else {
+                dateStr = `${dateStr}, ${now.getFullYear()}`;
+              }
+            }
+            document.querySelector(".ticket-date").textContent = dateStr;
+            document.querySelector(".ticket-venue").textContent =
+              activeEvent.venue;
+            document.querySelector(
+              ".ticket-image"
+            ).style.backgroundImage = `url('${activeEvent.imageUrl}')`;
+            document.querySelector(".ticket-type").textContent =
+              activeEvent.ticketType;
+
+            // Update price if element exists
+            const priceElement = document.querySelector(".ticket-price");
+            if (priceElement) {
+              priceElement.textContent = `$${activeEvent.price}`;
+            }
+          }
+        }
+      });
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("sw.js").then(
+            function (registration) {
+              console.log(
+                "ServiceWorker registration successful with scope: ",
+                registration.scope
+              );
+            },
+            function (err) {
+              console.log("ServiceWorker registration failed: ", err);
+            }
+          );
+        });
+      }
+      
+      // Countdown timer functionality
+      function refreshAllCountdowns() {
+        console.log("Refreshing all countdown timers");
+
+        const ticket = getActiveTicket();
+          if (ticket && ticket.showCountdown === false) {
+            console.log("Ticket has countdown disabled, skipping refreshAllCountdowns()");
+            return;
+          }
+
+        // Clear any existing interval
+        if (window.countdownInterval) {
+          clearInterval(window.countdownInterval);
+        }
+
+        // Get all countdown sections
+        const countdownSections = document.querySelectorAll(".countdown");
+
+        // If no countdown sections found, return early
+        if (countdownSections.length === 0) {
+          console.log("No countdown sections found");
+          return;
+        }
+
+        // Check if countdown display is enabled for this specific ticket
+        // First check if this is an active event with individual countdown preference
+        const activeEventId = localStorage.getItem("activeEvent");
+        let showCountdown = true; // Default to showing countdown
+
+        if (activeEventId) {
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          const activeEvent = events.find(
+            (event) => event.id === activeEventId
+          );
+          if (activeEvent && activeEvent.showCountdown !== undefined) {
+            // Use the individual event's countdown preference
+            showCountdown = activeEvent.showCountdown;
+          } else {
+            // Fallback to global setting if no individual preference
+            showCountdown =
+              localStorage.getItem("showCountdownOnMyTickets") !== "false";
+          }
+        } else {
+          // No active event, use global setting
+          showCountdown =
+            localStorage.getItem("showCountdownOnMyTickets") !== "false";
+        }
+
+        // If countdown is disabled globally or per event, apply view ticket to ALL slides
+        if (showCountdown === false) {
+          console.log("Countdown disabled, applying view ticket to all slides");
+          countdownSections.forEach((countdownSection) => {
+            // Clear any existing countdown content
+            countdownSection.innerHTML = "";
+
+            // Create view ticket elements
+            const mobileEntryText = document.createElement("div");
+            mobileEntryText.className = "mobile-entry-text";
+            mobileEntryText.style.cssText =
+              "font-size:18px;font-weight:normal;margin-bottom:0;color:black;";
+            mobileEntryText.textContent =
+              localStorage.getItem("entryLevel") || "Mobile Entry";
+
+            const viewTicketLink = document.createElement("a");
+            viewTicketLink.href = "qr-code.html";
+            viewTicketLink.className = "view-ticket-link";
+
+            const viewTicketContainer = document.createElement("div");
+            viewTicketContainer.className = "view-ticket-container";
+
+            const barcodeIcon = document.createElement("img");
+            barcodeIcon.src = "assets/barcode_tm.png";
+            barcodeIcon.alt = "Barcode Icon";
+            barcodeIcon.className = "view-ticket-icon";
+            barcodeIcon.style.cssText =
+              "width:25px; height:30px; vertical-align:middle; margin-right:8px; filter: invert(1);";
+
+            const viewTicketText = document.createElement("span");
+            viewTicketText.className = "view-ticket-text";
+            viewTicketText.textContent = "View Ticket";
+
+            // Assemble the elements
+            viewTicketContainer.appendChild(barcodeIcon);
+            viewTicketContainer.appendChild(viewTicketText);
+            viewTicketLink.appendChild(viewTicketContainer);
+            countdownSection.appendChild(mobileEntryText);
+            countdownSection.appendChild(viewTicketLink);
+          });
+
+          // Update Swiper after all slides are modified
+          setTimeout(() => {
+            if (window.swiperInstance) {
+              window.swiperInstance.update();
+            }
+          }, 50);
+          return;
+        }
+
+        // Check if any slide meets the 48-hour or countdown finished criteria
+        let shouldApplyViewTicketToAll = false;
+        let viewTicketReason = "";
+
+        // Check the first slide's target date to determine if we should apply view ticket to all
+        const firstCountdownSection = countdownSections[0];
+        const targetDateStr =
+          firstCountdownSection.getAttribute("data-target-date");
+        if (targetDateStr) {
+          const targetDate = new Date(targetDateStr);
+          if (!isNaN(targetDate)) {
+            const currentTime = new Date();
+            const diff = targetDate - currentTime;
+            const hoursRemaining = diff / (1000 * 60 * 60);
+
+            if (diff <= 0) {
+              shouldApplyViewTicketToAll = true;
+              viewTicketReason = "countdown_finished";
+            } else if (hoursRemaining <= 48) {
+              shouldApplyViewTicketToAll = true;
+              viewTicketReason = "48_hour";
+            }
+          }
+        }
+
+        // If any condition is met, apply view ticket to ALL slides
+        if (shouldApplyViewTicketToAll) {
+          console.log(
+            `Applying view ticket to all slides: ${viewTicketReason}`
+          );
+          countdownSections.forEach((countdownSection) => {
+            // Clear any existing countdown content
+            countdownSection.innerHTML = "";
+
+            const mobileEntryContainer = document.createElement("div");
+            mobileEntryContainer.className = "mobile-entry-container";
+
+            const mobileEntryText = document.createElement("div");
+            mobileEntryText.className = "mobile-entry-text";
+            mobileEntryText.style.cssText =
+              "font-size:18px;font-weight:normal;margin-bottom:0;color:black;";
+            mobileEntryText.textContent =
+              localStorage.getItem("entryLevel") || "Mobile Entry";
+
+            const viewTicketLink = document.createElement("a");
+            viewTicketLink.href = "qr-code.html";
+            viewTicketLink.className = "view-ticket-link";
+
+            const viewTicketContainer = document.createElement("div");
+            viewTicketContainer.className = "view-ticket-container";
+
+            const barcodeIcon = document.createElement("img");
+            barcodeIcon.src = "assets/barcode_tm.png";
+            barcodeIcon.alt = "Barcode Icon";
+            barcodeIcon.className = "view-ticket-icon";
+            barcodeIcon.style.cssText =
+              "width:25px; height:30px; vertical-align:middle; margin-right:8px; filter: invert(1);";
+
+            const viewTicketText = document.createElement("span");
+            viewTicketText.className = "view-ticket-text";
+            viewTicketText.textContent = "View Ticket";
+
+            // Assemble the elements
+            viewTicketContainer.appendChild(barcodeIcon);
+            viewTicketContainer.appendChild(viewTicketText);
+            viewTicketLink.appendChild(viewTicketContainer);
+            mobileEntryContainer.appendChild(mobileEntryText);
+            mobileEntryContainer.appendChild(viewTicketLink);
+            countdownSection.appendChild(mobileEntryContainer);
+          });
+
+          // Update Swiper after all slides are modified
+          setTimeout(() => {
+            if (window.swiperInstance) {
+              window.swiperInstance.update();
+            }
+          }, 50);
+          return;
+        }
+
+        // Otherwise, set up normal countdown timers for all slides
+        countdownSections.forEach((countdownSection) => {
+          // Get target date from data attribute
+          const targetDateStr =
+            countdownSection.getAttribute("data-target-date");
+          if (!targetDateStr) {
+            console.warn("No target date found for countdown");
+            return;
+          }
+          const targetDate = new Date(targetDateStr);
+          if (isNaN(targetDate)) {
+            console.warn("Invalid target date for countdown:", targetDateStr);
+            return;
+          }
+
+          // Function to update this countdown based on current time
+          function updateCountdown() {
+            const currentTime = new Date();
+            const diff = targetDate - currentTime;
+
+            // Show countdown timer HTML if not already present
+            if (!countdownSection.querySelector(".countdown-label")) {
+              countdownSection.innerHTML = "";
+
+              const countdownLabel = document.createElement("div");
+              countdownLabel.className = "countdown-label";
+              countdownLabel.textContent = "Ticket will be ready in:";
+
+              const countdownTimer = document.createElement("div");
+              countdownTimer.className = "countdown-timer";
+
+              // Create timer units
+              const timerUnits = [
+                { value: "00", label: "DAY" },
+                { value: "00", label: "HOUR" },
+                { value: "00", label: "MIN" },
+                { value: "00", label: "SECONDS" },
+              ];
+
+              timerUnits.forEach((unit) => {
+                const timerUnit = document.createElement("div");
+                timerUnit.className = "timer-unit";
+
+                const timerValue = document.createElement("div");
+                timerValue.className = "timer-value";
+                timerValue.textContent = unit.value;
+
+                const timerLabel = document.createElement("div");
+                timerLabel.className = "timer-label";
+                timerLabel.textContent = unit.label;
+
+                timerUnit.appendChild(timerValue);
+                timerUnit.appendChild(timerLabel);
+                countdownTimer.appendChild(timerUnit);
+              });
+
+              countdownSection.appendChild(countdownLabel);
+              countdownSection.appendChild(countdownTimer);
+            }
+
+            // Calculate remaining time based on current time (not stored values)
+            if (diff <= 0) {
+              // Countdown finished, show view ticket
+              countdownSection.innerHTML = "";
+
+              const mobileEntryText = document.createElement("div");
+              mobileEntryText.className = "mobile-entry-text";
+              mobileEntryText.style.cssText =
+                "font-size:18px;font-weight:normal;margin-bottom:0;color:black;";
+              mobileEntryText.textContent =
+                localStorage.getItem("entryLevel") || "Mobile Entry";
+
+              const viewTicketLink = document.createElement("a");
+              viewTicketLink.href = "qr-code.html";
+              viewTicketLink.className = "view-ticket-link";
+
+              const viewTicketContainer = document.createElement("div");
+              viewTicketContainer.className = "view-ticket-container";
+
+              const barcodeIcon = document.createElement("img");
+              barcodeIcon.src = "assets/barcode_tm.png";
+              barcodeIcon.alt = "Barcode Icon";
+              barcodeIcon.className = "view-ticket-icon";
+              barcodeIcon.style.cssText =
+                "width:25px; height:30px; vertical-align:middle; margin-right:8px; filter: invert(1);";
+
+              const viewTicketText = document.createElement("span");
+              viewTicketText.className = "view-ticket-text";
+              viewTicketText.textContent = "View Ticket";
+
+              // Assemble the elements
+              viewTicketContainer.appendChild(barcodeIcon);
+              viewTicketContainer.appendChild(viewTicketText);
+              viewTicketLink.appendChild(viewTicketContainer);
+              countdownSection.appendChild(mobileEntryText);
+              countdownSection.appendChild(viewTicketLink);
+
+              return; // Stop updating this countdown
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor(
+              (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+            );
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const timerValues =
+              countdownSection.querySelectorAll(".timer-value");
+            if (timerValues.length === 4) {
+              timerValues[0].textContent = days.toString().padStart(2, "0");
+              timerValues[1].textContent = hours.toString().padStart(2, "0");
+              timerValues[2].textContent = minutes.toString().padStart(2, "0");
+              timerValues[3].textContent = seconds.toString().padStart(2, "0");
+            }
+          }
+
+          // Initial update
+          updateCountdown();
+
+          // Set interval for this countdown
+          const intervalId = setInterval(updateCountdown, 1000);
+        });
+      }
+
+
+      function updateCountdown() {
+        refreshAllCountdowns();
+      }
+
+      function updateOrderDetails() {
+        // This function can be empty for now or contain order details logic
+        console.log("Order details updated");
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOMContentLoaded: updating order details modal");
+        updateOrderDetails();
+
+        // Load ticket data from localStorage
+        updateTicketFromLocalStorage();
+
+        // Start countdown timer
+        refreshAllCountdowns();
+
+        // Update ticket count with proper format
+        const ticketCount = parseInt(
+          localStorage.getItem("ticketCount") || "3"
+        );
+        document.getElementById("ticketCount").textContent = ticketCount;
+
+        // Count enabled add-ons
+        let addonCount = parseInt(localStorage.getItem("addonCount") || "0");
+        if (!localStorage.getItem("addonCount")) {
+          // Fallback calculation if addonCount isn't set
+          addonCount = 0;
+          if (localStorage.getItem("vipEarlyEntry") === "true") addonCount++;
+          if (localStorage.getItem("merchPackage") === "true") addonCount++;
+          if (localStorage.getItem("premiumParking") === "true") addonCount++;
+          localStorage.setItem("addonCount", addonCount.toString());
+        }
+        document.getElementById("addonCount").textContent = addonCount;
+
+        // Update map and banner images
+        updateMapFromEvent();
+        updateBannerImages();
+
+        // Check if we need to open the transfer modal
+        if (localStorage.getItem("openTransferModalOnLoad") === "true") {
+          // Clear the flag
+          localStorage.removeItem("openTransferModalOnLoad");
+
+          // Open the transfer modal after a short delay to ensure everything is loaded
+          setTimeout(function () {
+            openTransferModal();
+          }, 300);
+        }
+
+        // Handle tab switching
+        const tabs = document.querySelectorAll(".tabs div");
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", function () {
+            if (this.textContent.includes("ADD-ONS")) {
+              openAddonsModal();
+            } else {
+              tabs.forEach((t) => t.classList.remove("active"));
+              this.classList.add("active");
+            }
+          });
+        });
+
+        // Handle button actions
+        document
+          .querySelector(".transfer-button")
+          .addEventListener("click", function () {
+            openTransferModal();
+          });
+
+        document
+          .querySelector(".sell-button")
+          .addEventListener("click", function () {
+            alert("Sell functionality would open here");
+          });
+
+        document
+          .querySelector(".orders-button")
+          .addEventListener("click", function () {
+            window.location.href = "orders.html";
+          });
+
+        // Add page visibility API to handle app backgrounding
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) {
+            console.log("App became visible, refreshing countdowns");
+            // Refresh countdowns when user returns to the app
+            refreshAllCountdowns();
+          }
+        });
+
+        // Add focus event listener for when user returns to the app
+        window.addEventListener("focus", function () {
+          console.log("Window focused, refreshing countdowns");
+          refreshAllCountdowns();
+        });
+
+        // Store the last time countdowns were updated
+        localStorage.setItem("lastCountdownUpdate", Date.now().toString());
+      });
+
+      function updateTicketFromLocalStorage() {
+        console.log("Updating ticket from localStorage");
+
+        // Update banner image for all tickets
+        const bannerImage = localStorage.getItem("bannerImage");
+        if (bannerImage) {
+          console.log(
+            "Found banner image in localStorage, updating ticket images"
+          );
+          const ticketImages = document.querySelectorAll(".ticket-image");
+          ticketImages.forEach((imageDiv, index) => {
+            imageDiv.style.backgroundImage = `url('${bannerImage}')`;
+            console.log(`Updated ticket image ${index + 1} with custom banner`);
+          });
+        } else {
+          console.log("No banner image found in localStorage");
+        }
+
+        // Update map based on active event
+        updateMapFromEvent();
+      }
+
+      function updateMapFromEvent() {
+        const activeTicketId = localStorage.getItem("activeTicket");
+          console.log("Active ticket ID:", activeTicketId);
+
+          // Get tickets from localStorage
+          const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+
+          // Find active ticket
+          const activeTicket = tickets.find(t => t.id === activeTicketId);
+          console.log("Active ticket found:", activeTicket);
+
+          // Try to get venue image from active ticket, fallback to global venue image
+          let venueImage = activeTicket?.venueImage || localStorage.getItem("venueImage");
+          console.log(
+            "Venue image to use:",
+            venueImage ? "Found (" + venueImage.length + " chars)" : "Not found"
+          );
+
+
+        // Helper function to validate image data with Vercel-specific checks
+        function isValidImageData(imageData) {
+          if (!imageData || typeof imageData !== "string") return false;
+          if (imageData.length < 100) return false; // Too short to be valid
+          if (imageData.length > 500000) return false; // Too large for Vercel
+          if (!imageData.startsWith("data:image/")) return false; // Not a data URL
+
+          // Additional Vercel-specific validation
+          try {
+            // Test if the data URL is properly formatted
+            const parts = imageData.split(",");
+            if (parts.length !== 2) return false;
+
+            // Check if base64 data is valid
+            const base64Data = parts[1];
+            if (base64Data.length === 0) return false;
+
+            return true;
+          } catch (error) {
+            console.error("Error validating image data:", error);
+            return false;
+          }
+        }
+
+        // Helper function to safely display venue image with Vercel fallbacks
+        function displayVenueImage(venueImage, venue, venueAddress) {
+          const mapContent = document.getElementById("mapContent");
+          if (!mapContent) return false;
+
+          try {
+            // Validate the image data before using it
+            if (!isValidImageData(venueImage)) {
+              console.warn(
+                "Invalid venue image data for Vercel, falling back to static map"
+              );
+              return false;
+            }
+
+            // Test if the image loads properly with timeout for Vercel
+            const testImg = new Image();
+            let imageLoadTimeout;
+
+            testImg.onload = function () {
+              clearTimeout(imageLoadTimeout);
+              console.log(
+                "Venue image loaded successfully for Vercel, displaying"
+              );
+              mapContent.innerHTML = `
+                            <div class="venue-image-container">
+                                <img src="${venueImage}" alt="${venue}" class="venue-image" 
+                                     onerror="this.parentElement.innerHTML='<div class=\'static-map\'><div class=\'venue-info\'><h3>${venue}</h3><p>${venueAddress}</p><a href=\'https://maps.google.com/?q=${encodeURIComponent(
+                venueAddress
+              )}\' target=\'_blank\'>Get Directions</a></div></div>'">
+                                <div class="venue-overlay">
+                                    <div class="venue-info">
+                                        <h3>${venue}</h3>
+                                        <p>${venueAddress}</p>
+                                        <a href="https://maps.google.com/?q=${encodeURIComponent(
+                                          venueAddress
+                                        )}" target="_blank">Get Directions</a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+            };
+
+            testImg.onerror = function () {
+              clearTimeout(imageLoadTimeout);
+              console.error(
+                "Venue image failed to load for Vercel, falling back to static map"
+              );
+              mapContent.innerHTML = `
+                            <div class="static-map">
+                                <div class="venue-info">
+                                    <h3>${venue}</h3>
+                                    <p>${venueAddress}</p>
+                                    <a href="https://maps.google.com/?q=${encodeURIComponent(
+                                      venueAddress
+                                    )}" target="_blank">Get Directions</a>
+                                </div>
+                            </div>
+                        `;
+            };
+
+            // Set timeout for Vercel (5 seconds)
+            imageLoadTimeout = setTimeout(function () {
+              console.error(
+                "Venue image load timeout for Vercel, falling back to static map"
+              );
+              testImg.onerror();
+            }, 5000);
+
+            testImg.src = venueImage;
+            return true;
+          } catch (error) {
+            console.error("Error displaying venue image for Vercel:", error);
+            return false;
+          }
+        }
+
+        if (activeEventId) {
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          console.log("All events:", events);
+          const activeEvent = events.find(
+            (event) => event.id === activeEventId
+          );
+          console.log("Active event found:", activeEvent);
+
+          if (activeEvent) {
+            // Use event-specific venue and location or fallback to defaults
+            const venue = activeEvent.venue || "Chase Center";
+            const venueLocation =
+              activeEvent.venueLocation ||
+              localStorage.getItem("venueLocation") ||
+              "San Francisco, CA";
+            const venueAddress = `${venue}, ${venueLocation}`;
+
+            // Try multiple sources for venue image with Vercel validation
+            let venueImage = "";
+            if (isValidImageData(globalVenueImage)) {
+              venueImage = globalVenueImage;
+              console.log(
+                "Using global venue image from localStorage for Vercel"
+              );
+            } else if (isValidImageData(activeEvent.venueImage)) {
+              venueImage = activeEvent.venueImage;
+              console.log("Using venue image from active event for Vercel");
+            }
+
+            console.log(
+              "Final venue image to use for Vercel:",
+              venueImage
+                ? "Found (" + venueImage.length + " chars)"
+                : "Not found"
+            );
+
+            // Try to display venue image, fallback to static map if it fails
+            if (
+              venueImage &&
+              !displayVenueImage(venueImage, venue, venueAddress)
+            ) {
+              // Fallback to static map for Vercel
+              const mapContent = document.getElementById("mapContent");
+              if (mapContent) {
+                mapContent.innerHTML = `
+                                <div class="static-map">
+                                    <div class="venue-info">
+                                        <h3>${venue}</h3>
+                                        <p>${venueAddress}</p>
+                                        <a href="https://maps.google.com/?q=${encodeURIComponent(
+                                          venueAddress
+                                        )}" target="_blank">Get Directions</a>
+                                    </div>
+                                </div>
+                            `;
+                console.log(
+                  `Updated map for event: ${activeEvent.title} at ${venueAddress} (Vercel fallback to static map)`
+                );
+              }
+            }
+          }
+        } else {
+          // No active event, use global venue info
+          const venue = localStorage.getItem("eventVenue") || "Chase Center";
+          const venueLocation =
+            localStorage.getItem("venueLocation") || "San Francisco, CA";
+          const venueAddress = `${venue}, ${venueLocation}`;
+
+          console.log(
+            "No active event, using global venue image for Vercel:",
+            globalVenueImage ? "Found" : "Not found"
+          );
+
+          // Try to display global venue image, fallback to static map if it fails
+          if (
+            isValidImageData(globalVenueImage) &&
+            !displayVenueImage(globalVenueImage, venue, venueAddress)
+          ) {
+            // Fallback to static map for Vercel
+            const mapContent = document.getElementById("mapContent");
+            if (mapContent) {
+              mapContent.innerHTML = `
+                            <div class="static-map">
+                                <div class="venue-info">
+                                    <h3>${venue}</h3>
+                                    <p>${venueAddress}</p>
+                                    <a href="https://maps.google.com/?q=${encodeURIComponent(
+                                      venueAddress
+                                    )}" target="_blank">Get Directions</a>
+                                </div>
+                            </div>
+                        `;
+              console.log(
+                `Updated map with global venue: ${venueAddress} (Vercel fallback to static map)`
+              );
+            }
+          }
+        }
+      }
+
+      function updateBannerImages() {
+        const activeEventId = localStorage.getItem("activeEvent");
+        if (activeEventId) {
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          const activeEvent = events.find(
+            (event) => event.id === activeEventId
+          );
+
+          if (activeEvent && activeEvent.bannerImage) {
+            console.log(
+              "Found event-specific banner image, updating ticket images"
+            );
+            const ticketImages = document.querySelectorAll(".ticket-image");
+            ticketImages.forEach((imageDiv, index) => {
+              imageDiv.style.backgroundImage = `url('${activeEvent.bannerImage}')`;
+              console.log(
+                `Updated ticket image ${index + 1} with event banner`
+              );
+            });
+          } else {
+            // Fallback to global banner image
+            const bannerImage = localStorage.getItem("bannerImage");
+            if (bannerImage) {
+              console.log("Using global banner image");
+              const ticketImages = document.querySelectorAll(".ticket-image");
+              ticketImages.forEach((imageDiv, index) => {
+                imageDiv.style.backgroundImage = `url('${bannerImage}')`;
+              });
+            }
+          }
+        }
+      }
+
+      function updateSeatInfoDisplay() {
+        const seatType =
+          localStorage.getItem("seatType") || "General Admission";
+        const section = localStorage.getItem("section") || "GAFLR";
+        const row = localStorage.getItem("row") || "22";
+        const seat = localStorage.getItem("seat") || "24";
+        const seatInfoContainer = document.getElementById("seatInfoContainer");
+
+        // Clear previous content
+        seatInfoContainer.innerHTML = "";
+
+        if (seatType === "General Admission") {
+          // General Admission layout
+          seatInfoContainer.innerHTML = `
+                    <div class="general-admission-layout">
+                        <div class="seat-column">
+                            <div class="seat-label">SEC</div>
+                            <div class="seat-value">${section}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="general-admission-text">General Admission</div>
+                        </div>
+                    </div>
+                `;
+        } else {
+          // Reserved Seating layout
+          seatInfoContainer.innerHTML = `
+                    <div class="seat-column">
+                        <div class="seat-label">SEC</div>
+                        <div class="seat-value">${section}</div>
+                    </div>
+                    <div class="seat-column">
+                        <div class="seat-label">ROW</div>
+                        <div class="seat-value">${row}</div>
+                    </div>
+                    <div class="seat-column">
+                        <div class="seat-label">SEAT</div>
+                        <div class="seat-value">${seat}</div>
+                    </div>
+                `;
+        }
+      }
+
+      // Improve navigation to QR code page
+      function navigateToQRCode(event) {
+        event.preventDefault();
+
+        // Store current countdown values in sessionStorage for quick restoration
+        const timerValues = [];
+        document.querySelectorAll(".timer-value").forEach((el) => {
+          timerValues.push(el.textContent);
+        });
+
+        if (timerValues.length > 0) {
+          sessionStorage.setItem(
+            "lastTimerValues",
+            JSON.stringify(timerValues)
+          );
+        }
+
+        // Add a quick transition effect
+        document.body.style.opacity = "0.8";
+        document.body.style.transition = "opacity 0.2s";
+
+        // Navigate to qr-code.html after a very short delay
+        setTimeout(function () {
+          window.location.href = "qr-code.html";
+        }, 100); // Just 100ms delay for a quick transition
+      }
+
+      // Add this to the DOMContentLoaded event
+      document.addEventListener("DOMContentLoaded", function () {
+        // Existing code...
+
+        // Check if we're returning from QR code page
+        const lastTimerValues = sessionStorage.getItem("lastTimerValues");
+        if (lastTimerValues) {
+          try {
+            const timerValues = JSON.parse(lastTimerValues);
+
+            // Immediately set the timer values to prevent flickering
+            document.querySelectorAll(".timer-value").forEach((el, index) => {
+              if (index < timerValues.length) {
+                el.textContent = timerValues[index];
+              }
+            });
+
+            // Clear the stored values
+            sessionStorage.removeItem("lastTimerValues");
+          } catch (e) {
+            console.error("Error restoring timer values:", e);
+          }
+        }
+
+        // Then start the normal countdown
+        refreshAllCountdowns();
+      });
+    
+      // Add this to your existing JavaScript
+      document.addEventListener("DOMContentLoaded", function () {
+        // Add event listener to the Add-ons tab
+        const tabs = document.querySelectorAll(".tabs div");
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", function () {
+            if (this.textContent.includes("ADD-ONS")) {
+              openAddonsModal();
+            } else {
+              tabs.forEach((t) => t.classList.remove("active"));
+              this.classList.add("active");
+            }
+          });
+        });
+
+        // Update add-on statuses
+        updateAddonStatuses();
+      });
+
+      function openAddonsModal() {
+        updateAddonStatuses();
+        const modal = document.getElementById("addonsModal");
+        modal.style.display = "flex";
+        modal.classList.add("show");
+      }
+
+      function closeAddonsModal() {
+        const modal = document.getElementById("addonsModal");
+        modal.style.display = "none";
+        modal.classList.remove("show");
+      }
+
+      function updateAddonStatuses() {
+        // Get add-on statuses from localStorage
+        const vipEarlyEntry = localStorage.getItem("vipEarlyEntry") === "true";
+        const merchPackage = localStorage.getItem("merchPackage") === "true";
+        const premiumParking =
+          localStorage.getItem("premiumParking") === "true";
+
+        // Update status displays
+        document.getElementById("vipStatus").textContent = vipEarlyEntry
+          ? "Included"
+          : "Not Included";
+        document.getElementById("merchStatus").textContent = merchPackage
+          ? "Included"
+          : "Not Included";
+        document.getElementById("parkingStatus").textContent = premiumParking
+          ? "Included"
+          : "Not Included";
+
+        // Count enabled add-ons
+        let addonCount = 0;
+        if (vipEarlyEntry) addonCount++;
+        if (merchPackage) addonCount++;
+        if (premiumParking) addonCount++;
+
+        // Update add-on count display
+        document.getElementById("addonCount").textContent = addonCount;
+      }
+
+      // Close modal when clicking outside
+      window.onclick = function (event) {
+        const modal = document.getElementById("addonsModal");
+        if (event.target === modal) {
+          closeAddonsModal();
+        }
+      };
+    
+    
+      // Add this to your existing JavaScript
+      document.addEventListener("DOMContentLoaded", function () {
+        // Your existing code...
+
+        // Generate ticket slides
+        generateTicketSlides();
+
+        // Initialize Swiper
+        initSwiper();
+      });
+
+      function generateTicketSlides() {
+        const ticketCount = parseInt(
+          localStorage.getItem("ticketCount") || "3"
+        );
+        const ticketWrapper = document.getElementById("ticketWrapper");
+
+        // Clear existing content
+        if (ticketWrapper) {
+          ticketWrapper.innerHTML = "";
+        }
+
+        // Get ticket data from localStorage
+        const ticket = getActiveTicket();
+        if (!ticket) {
+          console.error("No active ticket found.");
+          return;
+        }
+
+          const ticketType = ticket.ticketType || "General Sale";
+          const seatType = ticket.seatType || "General Admission";
+          const section = ticket.section || "GAFLR";
+          const row = ticket.row || "22";
+          const seatStart = parseInt(ticket.seat || "1");
+          const eventTitle = ticket.title || "Untitled Event";
+          let eventDate = ticket.date || ticket.eventDate || "Unknown Date";
+          const eventVenue = ticket.venue || "Unknown Venue";
+          // const imageToUse = ticket.bannerImage || "https://source.unsplash.com/random/800x450/?concert";
+          const countdownTargetDate = ticket.countdownTargetDate 
+            ? new Date(ticket.countdownTargetDate).toISOString()
+            : new Date(eventDate).toISOString();
+          const showCountdown = ticket.showCountdown !== false; // default true if not set
+
+
+        // CRITICAL FIX: Handle camping dates properly
+        // Check if current event is a camping event and use the appropriate date
+        const currentActiveEventId = localStorage.getItem("activeEvent");
+        if (currentActiveEventId) {
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          const activeEvent = events.find(
+            (event) => event.id === currentActiveEventId
+          );
+          if (activeEvent && activeEvent.isCampingEvent) {
+            console.log(
+              "Active event is a camping event, using camping date format"
+            );
+            // For camping events, regenerate the date format using current preference
+            if (activeEvent.campingStartDate && activeEvent.campingEndDate) {
+              eventDate = getDisplayDateForCamping(activeEvent);
+              console.log("Regenerated camping event date:", eventDate);
+            } else if (activeEvent.date) {
+              eventDate = activeEvent.date;
+              console.log("Using fallback camping event date:", eventDate);
+            }
+          }
+        }
+
+        // Get countdown target date to determine the correct year for event date
+        let countdownTargetDateForYear = null;
+        if (currentActiveEventId) {
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          const activeEvent = events.find(
+            (event) => event.id === currentActiveEventId
+          );
+          if (activeEvent && activeEvent.countdownTargetDate) {
+            countdownTargetDateForYear = activeEvent.countdownTargetDate;
+          }
+        }
+        if (!countdownTargetDateForYear) {
+          countdownTargetDateForYear = localStorage.getItem(
+            "countdownTargetDate"
+          );
+        }
+
+        // Ensure the date includes the correct year from countdown target date
+        if (!/\b\d{4}\b/.test(eventDate)) {
+          // If no 4-digit year, use year from countdown target date or current year
+          let targetYear = new Date().getFullYear(); // Default to current year
+          if (countdownTargetDateForYear) {
+            const targetDate = new Date(countdownTargetDateForYear);
+            if (!isNaN(targetDate.getTime())) {
+              targetYear = targetDate.getFullYear();
+              console.log(
+                "Using year from countdown target date for event display:",
+                targetYear
+              );
+            }
+          }
+
+          // Insert year after month and day if possible
+          const dateParts = eventDate.split(",");
+          if (dateParts.length >= 2) {
+            eventDate = `${dateParts[0]},${
+              dateParts[1]
+            }, ${targetYear},${dateParts.slice(2).join(",")}`;
+          } else {
+            eventDate = `${eventDate}, ${targetYear}`;
+          }
+        }
+
+        // Get banner image from localStorage, with fallback
+        const bannerImage = localStorage.getItem("bannerImage");
+        const defaultImage =
+          "https://source.unsplash.com/random/800x450/?concert";
+
+        // Check for event-specific banner image
+        let imageToUse = defaultImage;
+        if (currentActiveEventId) {
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          const activeEvent = events.find(
+            (event) => event.id === currentActiveEventId
+          );
+          if (activeEvent && activeEvent.bannerImage) {
+            imageToUse = activeEvent.bannerImage;
+            console.log(
+              "Using event-specific banner image:",
+              activeEvent.bannerImage
+            );
+          } else if (bannerImage) {
+            imageToUse = bannerImage;
+            console.log("Using global banner image:", bannerImage);
+          }
+        } else if (bannerImage) {
+          imageToUse = bannerImage;
+          console.log("Using global banner image:", bannerImage);
+        }
+
+        console.log("Final image to use:", imageToUse);
+
+        // Create ticket slides
+        for (let i = 0; i < ticketCount; i++) {
+          const slide = document.createElement("div");
+          slide.className = "swiper-slide";
+
+          // Calculate seat number
+          const seat = seatStart + i;
+
+          // Get events array from localStorage
+          const events = JSON.parse(localStorage.getItem("events") || "[]");
+          // Find active event by id
+          let countdownTargetDate = null;
+          if (currentActiveEventId) {
+            const activeEvent = events.find(
+              (event) => event.id === currentActiveEventId
+            );
+            if (activeEvent && activeEvent.countdownTargetDate) {
+              countdownTargetDate = activeEvent.countdownTargetDate;
+              console.log(
+                "Using countdown target date from active event:",
+                countdownTargetDate
+              );
+            }
+          }
+          // If no active event or countdownTargetDate, try to get from localStorage
+          if (!countdownTargetDate) {
+            const globalCountdownTargetDate = localStorage.getItem(
+              "countdownTargetDate"
+            );
+            if (globalCountdownTargetDate) {
+              countdownTargetDate = globalCountdownTargetDate;
+              console.log(
+                "Using global countdown target date:",
+                countdownTargetDate
+              );
+            } else {
+              // Last resort: fallback to eventDate
+              countdownTargetDate = new Date(eventDate).toISOString();
+              console.log(
+                "Using event date as countdown target date:",
+                countdownTargetDate
+              );
+            }
+          }
+          console.log("show countdown", showCountdown);
+          // Determine seat info HTML
+          let seatInfoHTML = "";
+          if (seatType === "General Admission") {
+            seatInfoHTML = `
+                        <div class="seat-info-ga" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <div class="seat-column-ga" style="display: flex; flex-direction: column; align-items: center;">
+                                <div class="seat-label" style="margin-bottom: 2px;">SEC</div>
+                                <div class="seat-value">${section}</div>
+                            </div>
+                            <div class="general-admission-text" style="margin-left: auto; margin-right: 20px;">General Admission</div>
+                        </div>
+                    `;
+          } else {
+            seatInfoHTML = `
+                        <div class="seat-info-container">
+                            <div class="seat-column">
+                                <div class="seat-label">SEC</div>
+                                <div class="seat-value">${section}</div>
+                            </div>
+                            <div class="seat-column">
+                                <div class="seat-label">ROW</div>
+                                <div class="seat-value">${row}</div>
+                            </div>
+                            <div class="seat-column">
+                                <div class="seat-label">SEAT</div>
+                                <div class="seat-value">${seat}</div>
+                            </div>
+                        </div>
+                    `;
+          }
+
+          slide.innerHTML = `
+                    <div class="ticket-card" style="position: relative;" id='ticketCard'>
+                        <div class="tm-icon"></div>
+                        <div class="ticket-header">
+                            <div class="ticket-type-label">${ticketType}</div>
+                            ${seatInfoHTML}
+                        </div>
+                        <div class="ticket-image" style="background-image: url('${imageToUse}')">
+                            <div class="ticket-image-overlay">
+                                <div class="event-title">${eventTitle}</div>
+                                <div class="event-details">${eventDate} • ${eventVenue}</div>
+                            </div>
+                        </div>
+                        ${
+                          showCountdown
+                            ? `<div class="countdown" data-target-date="${countdownTargetDate}">
+                                <div class="countdown-label">Ticket will be ready in:</div>
+                                <div class="countdown-timer">
+                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">DAY</div></div>
+                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">HOUR</div></div>
+                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">MIN</div></div>
+                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">SECONDS</div></div>
+                                </div>
+                              </div>`
+                            : `<div class="countdown" data-target-date="${countdownTargetDate}">
+                                <div class="mobile-entry-container">
+                                  <div class="mobile-entry-text" style="font-size: 18px; font-weight: normal; margin-bottom: 0; color: black;">
+                                    ${localStorage.getItem("entryLevel") || "Mobile Entry"}
+                                  </div>
+                                  <a href="qr-code.html" class="view-ticket-link">
+                                    <div class="view-ticket-container">
+                                      <img src="assets/barcode_tm.png" alt="Barcode Icon" class="view-ticket-icon"
+                                            style="width: 25px; height: 30px; vertical-align: middle; margin-right: 8px; filter: invert(1);" />
+                                      <span class="view-ticket-text">View Ticket</span>
+                                    </div>
+                                  </a>
+                                </div>
+                              </div>`
+                        }
+
+                        <a href="ticket-details.html" class="ticket-details-link">Ticket Details</a>
+                        <div class="ticket-card-underline"></div>
+                    </div>
+                `;
+
+          // Add slide to wrapper
+          if (ticketWrapper) {
+            ticketWrapper.appendChild(slide);
+          }
+        }
+
+        // Update pagination dots
+        updatePaginationDots(ticketCount);
+
+        // Start the countdown timer after slides are created
+        refreshAllCountdowns();
+
+        // Force update banner images after a short delay
+        setTimeout(function () {
+          updateBannerImages();
+        }, 100);
+
+        // Update ticket count in tab - FIXED FORMAT
+        document.getElementById("ticketCount").textContent = ticketCount;
+      }
+
+      function updatePaginationDots(ticketCount) {
+        const pagination = document.querySelector(".pagination");
+        if (!pagination) return;
+
+        // Clear existing dots
+        pagination.innerHTML = "";
+
+        // Only show one dot/line for the current slide
+        const dot = document.createElement("div");
+        dot.className = "pagination-dot active";
+        pagination.appendChild(dot);
+      }
+
+      function initSwiper() {
+        // Destroy existing Swiper instance if it exists
+        if (window.swiperInstance) {
+          window.swiperInstance.destroy(true, true);
+        }
+
+        // Wait a bit to ensure DOM is ready
+        setTimeout(() => {
+          try {
+            const swiperContainer = document.querySelector(".swiper-container");
+            if (!swiperContainer) {
+              console.error("Swiper container not found");
+              return;
+            }
+
+            const swiper = new Swiper(".swiper-container", {
+              slidesPerView: 1,
+              spaceBetween: 0,
+              speed: 400,
+              centeredSlides: true,
+              direction: "horizontal",
+              observer: true, // Enable observer to watch for DOM changes
+              observeParents: true, // Watch parent elements for changes
+              on: {
+                slideChange: function () {
+                  // Update pagination dots
+                  const dots = document.querySelectorAll(".pagination-dot");
+                  dots.forEach((dot, index) => {
+                    if (index === this.activeIndex) {
+                      dot.classList.add("active");
+                    } else {
+                      dot.classList.remove("active");
+                    }
+                  });
+                  // Refresh countdown timers on slide change
+                  refreshAllCountdowns();
+                },
+                slideChangeTransitionEnd: function () {
+                  // Additional refresh after transition ends to ensure all slides updated
+                  refreshAllCountdowns();
+                },
+              },
+            });
+
+            // Store the Swiper instance globally
+            window.swiperInstance = swiper;
+
+            // Make pagination dots clickable
+            const dots = document.querySelectorAll(".pagination-dot");
+            dots.forEach((dot, index) => {
+              dot.addEventListener("click", function () {
+                swiper.slideTo(index);
+              });
+            });
+
+            // Update ticket count in tab
+            const ticketCount = parseInt(
+              localStorage.getItem("ticketCount") || "3"
+            );
+            const ticketsTab = document.querySelector(".tabs .active");
+            if (ticketsTab) {
+              ticketsTab.textContent = `MY TICKETS ${ticketCount}`;
+            }
+
+            console.log("Swiper initialized successfully");
+          } catch (error) {
+            console.error("Error initializing Swiper:", error);
+          }
+        }, 100);
+      }
+
+      // CRITICAL FIX: Function to get the display date for camping events with current format preference
+      function getDisplayDateForCamping(event) {
+        // If it's a camping event, regenerate the date format using current preference
+        if (
+          event.isCampingEvent &&
+          event.campingStartDate &&
+          event.campingEndDate
+        ) {
+          console.log("=== REGENERATING CAMPING DATE FORMAT IN INDEX ===");
+          console.log("Camping start date:", event.campingStartDate);
+          console.log("Camping end date:", event.campingEndDate);
+          console.log("Camping date format:", event.campingDateFormat);
+
+          // Get current camping date format preference
+          const currentFormat =
+            localStorage.getItem("preferredCampingDateFormat") || "short";
+          console.log("Current format preference:", currentFormat);
+
+          // CRITICAL FIX: Create Date objects without timezone conversion
+          // Parse the date string manually to avoid timezone issues
+          const start = parseDateWithoutTimezone(event.campingStartDate);
+          const end = parseDateWithoutTimezone(event.campingEndDate);
+
+          console.log("Parsed start date (local):", start);
+          console.log("Parsed end date (local):", end);
+
+          // Regenerate the date format using current preference
+          let formattedDate = "";
+          if (currentFormat === "long") {
+            formattedDate = formatLongCampingDate(start, end);
+          } else if (currentFormat === "custom" && event.customDateFormat) {
+            formattedDate = formatCustomCampingDate(start, end);
+          } else {
+            // Default to short format
+            formattedDate = formatShortCampingDate(start, end);
+          }
+
+          console.log("Regenerated camping date format:", formattedDate);
+          console.log("================================");
+          return formattedDate;
+        }
+
+        // For non-camping events, return the original date
+        return event.date;
+      }
+
+      // CRITICAL FIX: Parse date strings without timezone conversion
+      function parseDateWithoutTimezone(dateString) {
+        // dateString format: "2025-09-04" (YYYY-MM-DD)
+        const [year, month, day] = dateString.split("-").map(Number);
+        // Create date in local timezone (month is 0-indexed in Date constructor)
+        return new Date(year, month - 1, day);
+      }
+
+      // Camping date formatting functions
+      function formatShortCampingDate(start, end) {
+        const startDay = start.toLocaleDateString("en-US", {
+          weekday: "short",
+        });
+        const startDate = start.getDate();
+        const startMonth = start.toLocaleDateString("en-US", {
+          month: "short",
+        });
+        const endDay = end.toLocaleDateString("en-US", { weekday: "short" });
+        const endDate = end.getDate();
+        const year = start.getFullYear();
+
+        // If same month, show: Fri, 29 Aug - Sun, 31 Aug 2025
+        if (start.getMonth() === end.getMonth()) {
+          return `${startDay}, ${startDate} ${startMonth} - ${endDay}, ${endDate} ${startMonth} ${year}`;
+        } else {
+          // Different months: Fri, 29 Aug - Sun, 31 Sep 2025
+          const endMonth = end.toLocaleDateString("en-US", { month: "short" });
+          return `${startDay}, ${startDate} ${startMonth} - ${endDay}, ${endDate} ${endMonth} ${year}`;
+        }
+      }
+
+      function formatLongCampingDate(start, end) {
+        const startDay = start.toLocaleDateString("en-US", { weekday: "long" });
+        const startDate = start.getDate();
+        const startMonth = start.toLocaleDateString("en-US", { month: "long" });
+        const endDay = end.toLocaleDateString("en-US", { weekday: "long" });
+        const endDate = end.getDate();
+        const year = start.getFullYear();
+
+        if (start.getMonth() === end.getMonth()) {
+          return `${startDay}, ${startMonth} ${startDate} - ${endDay}, ${startMonth} ${endDate}, ${year}`;
+        } else {
+          const endMonth = end.toLocaleDateString("en-US", { month: "long" });
+          return `${startDay}, ${startMonth} ${startDate} - ${endDay}, ${endMonth} ${endDate}, ${year}`;
+        }
+      }
+
+      function formatCustomCampingDate(start, end) {
+        const customFormat =
+          localStorage.getItem("preferredCustomDateFormat") || "";
+        if (!customFormat) return formatShortCampingDate(start, end);
+
+        const startDay = start.toLocaleDateString("en-US", {
+          weekday: "short",
+        });
+        const startDate = start.getDate();
+        const startMonth = start.toLocaleDateString("en-US", {
+          month: "short",
+        });
+        const endDay = end.toLocaleDateString("en-US", { weekday: "short" });
+        const endDate = end.getDate();
+        const endMonth = end.toLocaleDateString("en-US", { month: "short" });
+        const year = start.getFullYear();
+
+        return customFormat
+          .replace(/{startDay}/g, startDay)
+          .replace(/{startDate}/g, startDate)
+          .replace(/{startMonth}/g, startMonth)
+          .replace(/{endDay}/g, endDay)
+          .replace(/{endDate}/g, endDate)
+          .replace(/{endMonth}/g, endMonth)
+          .replace(/{year}/g, year);
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="header">
+      <span
+        class="close"
+        onclick="window.location.href='my-events.html'"
+        style="font-size: 45px !important; font-weight: 300; color: #eee"
+        >×</span
+      >
+      <div style="flex: 1; text-align: -webkit-center">My Tickets</div>
+      <!-- <a
+        class="help"
+        href="/for-you.html"
+        style="text-decoration: none; color: inherit"
+        >Help</a
+      > -->
+      <a href="#" class="help" onclick="redirectToForYou()">Help</a>
+    </div>
+
+    <div class="tabs">
+      <div class="active">MY TICKETS (<span id="ticketCount">3</span>)</div>
+      <div>ADD-ONS <span id="addonCount">0</span></div>
+    </div>
+
+    <div class="ticket-container">
+      <div class="swiper-container">
+        <div class="swiper-wrapper" id="ticketWrapper">
+          <!-- Ticket slides will be generated dynamically -->
+        </div>
+      </div>
+
+      <div class="pagination">
+        <div class="pagination-dot active"></div>
+        <div class="pagination-dot"></div>
+        <div class="pagination-dot"></div>
+      </div>
+
+      <div
+        class="manage-tickets-text"
+        style="cursor: pointer; text-decoration: none; color: #1a52ed"
+        onclick="window.location.href='settings.html'"
+      >
+        How Do I Manage My Tickets?
+      </div>
+
+      <div class="action-buttons">
+        <button class="action-button transfer-button">Transfer</button>
+        <button class="action-button sell-button">Sell</button>
+      </div>
+
+      <div class="map-container">
+        <div id="mapContent">
+          <!-- Map content will be loaded dynamically -->
+          <div class="static-map">
+            <div class="venue-info">
+              <h3>Chase Center</h3>
+              <p>1 Warriors Way</p>
+              <p>San Francisco, CA 94158</p>
+              <a
+                href="https://maps.google.com/?q=Chase+Center,San+Francisco+CA"
+                target="_blank"
+                >Get Directions</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add this modal HTML before the closing body tag -->
+    <div id="addonsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Ticket Add-ons</h2>
+          <span class="close-modal" onclick="closeAddonsModal()">&times;</span>
+        </div>
+        <div class="addon-list">
+          <div class="addon-item">
+            <div class="addon-name">VIP Early Entry</div>
+            <div class="addon-status" id="vipStatus">Included</div>
+          </div>
+          <div class="addon-item">
+            <div class="addon-name">Merchandise Package</div>
+            <div class="addon-status" id="merchStatus">Not Included</div>
+          </div>
+          <div class="addon-item">
+            <div class="addon-name">Premium Parking</div>
+            <div class="addon-status" id="parkingStatus">Not Included</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="window.location.href='for-you.html'">
+            Customize Add-ons
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    
+    <!-- Add this transfer modal HTML before the closing body tag -->
+    <div id="transferModal" class="modal transfer-modal" style="display:none;">
+      <div class="transfer-modal-content">
+        <div class="drag-handle"></div>
+        <div class="transfer-header">
+          <h2>SELECT TICKETS TO TRANSFER</h2>
+        </div>
+
+        <div class="safety-message">
+          <div class="info-icon">i</div>
+          <div class="safety-text">
+            Only transfer tickets to people you know and trust to ensure
+            everyone stays safe
+          </div>
+        </div>
+
+        <div class="transfer-section-info">
+          <div id="transferSectionRow">Sec 121, Row 4</div>
+          <div class="ticket-count">
+            <span id="transferTicketCount">3</span> Tickets
+          </div>
+        </div>
+
+        <div class="transfer-seats" id="transferSeatsContainer">
+          <!-- Seats will be generated dynamically -->
+        </div>
+
+        <div class="transfer-footer">
+          <div class="selected-count">
+            <span id="selectedCount">0</span> Selected
+          </div>
+          <button class="transfer-to-btn" id="transferToBtn" disabled>
+            TRANSFER TO
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    
+    <!-- Add these additional modals for the transfer flow -->
+    <div id="transferRecipientModal" class="modal">
+      <div class="modal-content recipient-modal">
+        <div class="modal-header">
+          <h2>Select Recipient</h2>
+          <span class="close-modal" onclick="closeTransferRecipientModal()"
+            >&times;</span
+          >
+        </div>
+        <div class="recipient-options">
+          <div class="recipient-option" onclick="selectFromContacts()">
+            <div class="option-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="option-text">Select from Contacts</div>
+          </div>
+          <div class="recipient-option" onclick="showManualEntryForm()">
+            <div class="option-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </div>
+            <div class="option-text">Manually Enter a Recipient</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="manualEntryForm" class="manual-entry-form">
+      <div class="form-header">
+        <button class="back-button" onclick="backToRecipientModal()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Back
+        </button>
+        <h2>Enter Recipient Details</h2>
+      </div>
+
+      <div class="form-content">
+        <div class="form-group">
+          <label for="recipientContact">Email or Mobile Number*</label>
+          <input
+            type="text"
+            id="recipientContact"
+            placeholder="Enter email or mobile number"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="recipientFirstName">First Name*</label>
+          <input
+            type="text"
+            id="recipientFirstName"
+            placeholder="Enter first name"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="recipientLastName">Last Name*</label>
+          <input
+            type="text"
+            id="recipientLastName"
+            placeholder="Enter last name"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="recipientNote">Note to Recipient</label>
+          <textarea
+            id="recipientNote"
+            placeholder="Add a personal note (optional)"
+            rows="3"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button class="cancel-btn" onclick="backToRecipientModal()">
+          Back
+        </button>
+        <button class="transfer-btn" onclick="completeTransfer()">
+          Transfer
+        </button>
+      </div>
+    </div>
+    
+    <!-- Add this right before the closing </body> tag -->
+    <script src="banner-handler.js"></script>
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script>
+      function getActiveTicket() {
+        const tickets = JSON.parse(localStorage.getItem("tickets")) || [];
+        const activeTicketId = localStorage.getItem("activeTicket");
+        console.log("Active Ticket ID:", activeTicketId);
+        return tickets.find(t => t.id === activeTicketId) || null;
+      }
+
+      // Additional banner handling specific to ticket.html
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("Index page loaded, checking for banner image");
+
+        // Update ticket images with banner when generating tickets
+        const originalGenerateTicketSlides = window.generateTicketSlides;
+        if (originalGenerateTicketSlides) {
+          window.generateTicketSlides = function () {
+            // Call the original function
+            originalGenerateTicketSlides.apply(this, arguments);
+
+            // Update banner images after slides are generated
+            setTimeout(function () {
+              console.log(
+                "Updating banner images after generating ticket slides"
+              );
+              updateBannerImages();
+            }, 100);
+          };
+        }
+
+        // Force update banner images and map
+        setTimeout(function () {
+          console.log("Force updating banner images and map");
+          updateBannerImages();
+          updateMapFromEvent();
+        }, 500);
+      });
+    
+
+      // Add this to your existing JavaScript
+      document.addEventListener("DOMContentLoaded", function () {
+        // Add event listener to the Transfer button
+        const transferButton = document.querySelector(".transfer-button");
+        if (transferButton) {
+          transferButton.addEventListener("click", function () {
+            openTransferModal();
+          });
+        }
+      });
+
+      function openTransferModal() {
+        // Get ticket data from localStorage
+        const section = localStorage.getItem("section") || "121";
+        const row = localStorage.getItem("row") || "4";
+        const seatStart = parseInt(localStorage.getItem("seat") || "13");
+        const ticketCount = parseInt(
+          localStorage.getItem("ticketCount") || "3"
+        );
+        const seatType = localStorage.getItem("seatType") || "Reserved Seating";
+
+        // Update section and row display
+        document.getElementById(
+          "transferSectionRow"
+        ).textContent = `Sec ${section}${
+          seatType !== "General Admission" ? ", Row " + row : ""
+        }`;
+        document.getElementById("transferTicketCount").textContent =
+          ticketCount;
+
+        // Generate seat options
+        generateSeatOptions(section, row, seatStart, ticketCount, seatType);
+
+        // Reset selected count
+        document.getElementById("selectedCount").textContent = "0";
+        document.getElementById("transferToBtn").disabled = true;
+
+        // Show the modal
+        const modal = document.getElementById("transferModal");
+        modal.style.display = "flex";
+        modal.classList.add("show");
+      }
+
+      function closeTransferModal() {
+        const modal = document.getElementById("transferModal");
+        modal.style.display = "none";
+        modal.classList.remove("show");
+      }
+
+      function generateSeatOptions(
+        section,
+        row,
+        seatStart,
+        ticketCount,
+        seatType
+      ) {
+        const seatsContainer = document.getElementById(
+          "transferSeatsContainer"
+        );
+
+        // Clear existing content
+        seatsContainer.innerHTML = "";
+
+        // Generate seat options
+        for (let i = 0; i < ticketCount; i++) {
+          const seat = seatType === "General Admission" ? "-" : seatStart + i;
+          const seatOption = document.createElement("div");
+          seatOption.className = "seat-option";
+
+          // For General Admission, show different text
+          const seatText =
+            seatType === "General Admission" ? "GA TICKET" : `SEAT ${seat}`;
+
+          seatOption.innerHTML = `
+                    <button class="seat-button">${seatText}</button>
+                    <div class="seat-checkbox" data-seat="${seat}" onclick="toggleSeatSelection(this)"></div>
+                `;
+          seatsContainer.appendChild(seatOption);
+        }
+      }
+
+      function toggleSeatSelection(checkbox) {
+        // Toggle selected class
+        checkbox.classList.toggle("selected");
+
+        // Count selected seats
+        const selectedSeats = document.querySelectorAll(
+          ".seat-checkbox.selected"
+        ).length;
+        document.getElementById("selectedCount").textContent = selectedSeats;
+
+        // Enable/disable transfer button
+        document.getElementById("transferToBtn").disabled = selectedSeats === 0;
+      }
+
+      // Add event listener for the Transfer To button
+      document
+        .getElementById("transferToBtn")
+        .addEventListener("click", function () {
+          // Get selected seats
+          const selectedSeats = Array.from(
+            document.querySelectorAll(".seat-checkbox.selected")
+          ).map((checkbox) => checkbox.getAttribute("data-seat"));
+
+          // Store selected seats in localStorage for later use
+          localStorage.setItem(
+            "selectedSeatsForTransfer",
+            JSON.stringify(selectedSeats)
+          );
+
+          // Close the seat selection modal
+          closeTransferModal();
+
+          // Open the recipient selection modal
+          openTransferRecipientModal();
+        });
+
+      // Close modal when clicking outside
+      window.onclick = function (event) {
+        const modal = document.getElementById("transferModal");
+        if (event.target === modal) {
+          closeTransferModal();
+        }
+      };
+  
+      // Add this to your DOMContentLoaded event handler
+      const addonCount = parseInt(localStorage.getItem("addonCount") || "0");
+      const addonCountElement = document.getElementById("addonCount");
+      if (addonCountElement) {
+        addonCountElement.textContent = addonCount.toString();
+      }
+    
+      // Add these functions to your existing JavaScript
+      function openTransferRecipientModal() {
+        closeTransferModal();
+        const modal = document.getElementById("transferRecipientModal");
+        modal.style.display = "flex";
+        modal.classList.add("show");
+      }
+
+      function closeTransferRecipientModal() {
+        const modal = document.getElementById("transferRecipientModal");
+        modal.style.display = "none";
+        modal.classList.remove("show");
+      }
+
+      function selectFromContacts() {
+        // In a real app, this would open the device's contact picker
+        alert("This would open your contacts list in a real app");
+      }
+
+      function showManualEntryForm() {
+        closeTransferRecipientModal();
+        document.getElementById("manualEntryForm").style.display = "block";
+      }
+
+      function backToRecipientModal() {
+        document.getElementById("manualEntryForm").style.display = "none";
+        openTransferRecipientModal();
+      }
+
+      function completeTransfer() {
+        // Get recipient info
+        const firstName = document.getElementById("recipientFirstName").value;
+        const lastName = document.getElementById("recipientLastName").value;
+        const contact = document.getElementById("recipientContact").value;
+
+        // Validate inputs
+        if (!firstName || !lastName || !contact) {
+          alert("Please fill in all fields");
+          return;
+        }
+
+        // Get selected seats from previous step
+        const selectedSeats = JSON.parse(
+          localStorage.getItem("selectedSeatsForTransfer") || "[]"
+        );
+
+        // Get ticket data from localStorage
+        const section = localStorage.getItem("section") || "121";
+        const row = localStorage.getItem("row") || "4";
+        const ticketType = localStorage.getItem("ticketType") || "General Sale";
+        const eventTitle =
+          localStorage.getItem("eventTitle") ||
+          "BILLIE EILISH: HIT ME HARD AND SOFT: THE TOUR";
+        const eventDate =
+          localStorage.getItem("eventDate") || "Sat, Nov 22, 7:00 PM";
+        const eventVenue = localStorage.getItem("eventVenue") || "Chase Center";
+
+        // IMPORTANT FIX: Get sender name from localStorage with fallback
+        const senderName =
+          localStorage.getItem("userName") || "Ticketmaster User";
+        console.log("Using sender name for email:", senderName);
+
+        // Create loading overlay
+        const loadingOverlay = document.createElement("div");
+        loadingOverlay.className = "loading-overlay";
+        loadingOverlay.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Sending tickets...</div>
+            `;
+
+        // Add to body
+        document.body.appendChild(loadingOverlay);
+
+        // Show the loading overlay
+        loadingOverlay.style.display = "flex";
+
+        // Record start time
+        const startTime = Date.now();
+
+        // Prepare data for API call
+        const transferData = {
+          recipientEmail: contact,
+          recipientName: `${firstName} ${lastName}`,
+          senderName: senderName, // Use the correct sender name
+          eventTitle: eventTitle,
+          eventDate: eventDate,
+          eventVenue: eventVenue,
+          section: section,
+          row: row,
+          seats: selectedSeats.join(", "),
+          ticketCount: selectedSeats.length,
+          seatType: localStorage.getItem("seatType") || "Reserved Seating",
+          templateChoice:
+            localStorage.getItem("emailTemplateChoice") || "template1",
+        };
+
+        // Make API call to send the email
+        fetch("/api/send-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(transferData),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Email sent successfully:", data);
+
+            // Calculate elapsed time
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 2000 - elapsedTime);
+
+            // Ensure loading shows for at least 2 seconds
+            setTimeout(() => {
+              // Remove loading overlay
+              loadingOverlay.remove();
+              // Continue with the transfer process
+              finalizeTransfer();
+            }, remainingTime);
+          })
+          .catch((error) => {
+            console.error("Error sending email:", error);
+
+            // Calculate elapsed time
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 2000 - elapsedTime);
+
+            // Ensure loading shows for at least 2 seconds
+            setTimeout(() => {
+              // Remove loading overlay
+              loadingOverlay.remove();
+              // Continue with the transfer process anyway (for demo purposes)
+              finalizeTransfer();
+            }, remainingTime);
+          });
+      }
+
+      // Separate function to complete the transfer process after email is sent
+      function finalizeTransfer() {
+        // Get recipient info
+        const firstName = document.getElementById("recipientFirstName").value;
+        const lastName = document.getElementById("recipientLastName").value;
+        const contact = document.getElementById("recipientContact").value;
+
+        // Get selected seats from previous step
+        const selectedSeats = JSON.parse(
+          localStorage.getItem("selectedSeatsForTransfer") || "[]"
+        );
+
+        // Get ticket data from localStorage
+        const section = localStorage.getItem("section") || "121";
+        const row = localStorage.getItem("row") || "4";
+        const seatType = localStorage.getItem("seatType") || "Reserved Seating";
+        const ticketType = localStorage.getItem("ticketType") || "General Sale";
+        const eventTitle =
+          localStorage.getItem("eventTitle") ||
+          "BILLIE EILISH: HIT ME HARD AND SOFT: THE TOUR";
+        const eventDate =
+          localStorage.getItem("eventDate") || "Sat, Nov 22, 7:00 PM";
+        const eventVenue = localStorage.getItem("eventVenue") || "Chase Center";
+        const bannerImage =
+          localStorage.getItem("bannerImage") ||
+          "https://source.unsplash.com/random/800x450/?concert";
+
+        // Generate a random order number
+        const orderNumber = `Order ${Math.floor(Math.random() * 100000)}/TM`;
+
+        // Remove any existing success modal
+        const existingModal = document.getElementById("transferSuccessModal");
+        if (existingModal) existingModal.remove();
+
+        // Create new success modal
+        const successModal = document.createElement("div");
+        successModal.id = "transferSuccessModal";
+        successModal.className = "modal transfer-success-modal";
+
+        // Format seat range text
+        let seatText = selectedSeats[0];
+        if (selectedSeats.length > 1) {
+          seatText = `${selectedSeats[0]}-${
+            selectedSeats[selectedSeats.length - 1]
+          }`;
+        }
+
+        // Use the actual ticket type from localStorage
+        // For GA tickets, we'll still show "General Admission" in the seat info
+        let seatInfoHTML = "";
+
+        if (seatType === "General Admission") {
+          // For General Admission, only show section and GA text
+          seatInfoHTML = `
+                    <div class="seat-info">
+                        <div class="seat-column">
+                            <div class="seat-label">SEC</div>
+                            <div class="seat-value">${section}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="general-admission-text">General Admission</div>
+                        </div>
+                    </div>
+                `;
+        } else {
+          // For Reserved Seating, show section, row, and seat
+          seatInfoHTML = `
+                    <div class="seat-info">
+                        <div class="seat-column">
+                            <div class="seat-label">SEC</div>
+                            <div class="seat-value">${section}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="seat-label">ROW</div>
+                            <div class="seat-value">${row}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="seat-label">SEAT</div>
+                            <div class="seat-value">${seatText}</div>
+                        </div>
+                    </div>
+                `;
+        }
+
+        successModal.innerHTML = `
+                <div class="transfer-success-content">
+                    <div class="success-header">
+                        <span class="close-success" onclick="closeSuccessModal()">&times;</span>
+                        <div class="event-title-container">
+                            <div class="event-title">${eventTitle}</div>
+                            <div class="event-details">${eventDate} • ${eventVenue}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="success-ticket-card">
+                        <div class="ticket-header">${ticketType}</div>
+                        ${seatInfoHTML}
+                        
+                        <div class="ticket-image" style="background-image: url('${bannerImage}')">
+                            <div class="ticket-image-overlay">
+                                <div class="event-title">${eventTitle}</div>
+                                <div class="event-details">${eventDate} • ${eventVenue}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="sent-banner">Sent</div>
+                        
+                        <div class="transfer-details">
+                            <div class="transfer-count">${
+                              selectedSeats.length
+                            } ticket${
+          selectedSeats.length > 1 ? "s" : ""
+        } sent to</div>
+                            <div class="recipient-name">${firstName} ${lastName}</div>
+                            <div class="transfer-status">Waiting for recipient to claim</div>
+                            <div class="order-number">${orderNumber}</div>
+                            
+                            <button class="cancel-transfer-btn">Cancel Transfer</button>
+                        </div>
+                    </div>
+                    
+                    <div class="pagination-dots">
+                        <div class="dot active"></div>
+                    </div>
+                    
+                    <div class="bottom-actions">
+                        <button class="action-button transfer-button">Transfer</button>
+                        <button class="action-button sell-button">Sell</button>
+                    </div>
+                </div>
+            `;
+
+        // Add success modal to body
+        document.body.appendChild(successModal);
+
+        // Show the modal
+        successModal.style.display = "block";
+
+        // Remove confirmation modal if it exists
+        const confirmModal = document.getElementById(
+          "transferConfirmationModal"
+        );
+        if (confirmModal) confirmModal.remove();
+
+        // Remove manual entry form
+        document.getElementById("manualEntryForm").style.display = "none";
+      }
+
+      function closeSuccessModal() {
+        const modal = document.getElementById("transferSuccessModal");
+        if (modal) {
+          modal.remove();
+        }
+
+        // Return to tickets page
+        window.location.href = "ticket.html";
+      }
+
+      function redirectToForYou() {
+          // activeTicket should already be set in localStorage from my-events.html
+          const ticketId = localStorage.getItem('activeTicket');
+          if (ticketId) {
+              console.log('Redirecting to for-you.html with ticket ID:', ticketId);
+              window.location.href = 'for-you.html';
+          } else {
+              console.error('No active ticket ID found in localStorage');
+              // Fallback: redirect to for-you.html without ticket ID
+              window.location.href = 'for-you.html';
+          }
+      }
+    </script>
+  </body>
+</html>

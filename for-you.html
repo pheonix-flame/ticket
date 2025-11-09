@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Customize Your Tickets</title>
+    <style>
+        /* Prevent zooming and ensure fixed layout */
+        html, body {
+            touch-action: manipulation;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            margin: 0;
+        }
+        input, select, textarea {
+            font-size: 16px; /* Prevents iOS zoom on focus */
+        }
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            font-size: 16px;
+            position: relative;
+            padding-bottom: 70px; /* Space for bottom nav */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .container {
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+            padding-bottom: 90px; /* Extra padding for bottom nav */
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            /* Adjust for status bar */
+            padding-top: calc(15px + env(safe-area-inset-top));
+        }
+        .page-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-right: 100px;
+        }
+        .back-button {
+            color: #1a52ed;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .clear-placeholder-container {
+            text-align: right;
+            max-width: 200px;
+        }
+        .clear-placeholder-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .clear-placeholder-desc {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1a52ed;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        input[type="file"] {
+            padding: 8px;
+        }
+        
+        input[type="color"] {
+            height: 40px;
+        }
+        
+        .countdown-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .countdown-inputs input {
+            flex: 1;
+        }
+        
+        .preview-image {
+            width: 100%;
+            height: 150px;
+            background-size: cover;
+            background-position: center;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        
+        .button {
+            background-color: #1a52ed;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .button:hover {
+            background-color: #1545cc;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid #e0e0e0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            text-decoration: none;
+            padding: 8px 12px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: #024ddf;
+        }
+
+        .nav-item:hover {
+            color: #024ddf;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            fill: currentColor;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+        }
+        
+        .success-message {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+        
+        /* Live preview styles */
+        .preview-section {
+            background-color: #1a52ed;
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .preview-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .ticket-preview {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .ticket-header {
+            background-color: #1a52ed;
+            color: white;
+            padding: 20px 15px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ticket-type-label {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .seat-info-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 5px;
+        }
+
+        .seat-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .seat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .seat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* For General Admission layout */
+        .general-admission-layout {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .general-admission-text {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .ticket-section-info {
+            display: flex;
+            padding: 15px;
+            color: #333;
+        }
+        
+        .section-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .ticket-type {
+            flex-grow: 1;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .ticket-image-preview {
+            width: 100%;
+            height: 120px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        .ticket-image-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white;
+            padding: 15px;
+        }
+        
+        .event-title-preview {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .event-details-preview {
+            font-size: 12px;
+        }
+        
+        .countdown-preview {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            color: #333;
+        }
+        
+        .countdown-unit {
+            text-align: center;
+        }
+        
+        .countdown-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .countdown-label {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 40% auto;
+            padding: 25px;
+            width: 80%;
+            max-width: 350px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1a52ed;
+        }
+
+        .modal-message {
+            margin-bottom: 25px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .modal-button {
+            background-color: #1a52ed;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .modal-button:hover {
+            background-color: #0d44d6;
+        }
+
+        html {
+            touch-action: manipulation;
+            overflow-y: auto !important;
+            position: relative !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        body {
+            overscroll-behavior-y: contain;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="back-button" onclick="window.location.href='ticket.html'">Back</div>
+        <div class="page-title" style="flex: 1; text-align: center; font-size: 18px; font-weight: bold; margin: 0;">Customize Tickets</div>
+        <button id="resetAppBtn" style="background:#ff4d4d;color:white;border:none;padding:8px 12px;border-radius:5px;font-weight:bold;cursor:pointer;">Reset App</button>
+    </div>
+    
+    <div class="container" style="overflow-y: auto; height: calc(100% - 50px);">
+        <div class="success-message" id="successMessage">
+            Settings saved successfully! Your tickets have been updated.
+        </div>
+        
+        <div class="preview-section">
+            <div class="preview-title">Live Preview</div>
+            <div class="ticket-preview">
+                <div class="ticket-header">
+                    <div class="ticket-type-label" id="previewTicketType">General Sale</div>
+                    <div class="seat-info-container" id="seatInfoContainer">
+                        <!-- This will be dynamically populated based on seat type -->
+                    </div>
+                </div>
+                <div class="ticket-image-preview" id="previewBanner" style="background-image: url('https://source.unsplash.com/random/800x600/?concert')">
+                    <div class="ticket-image-overlay">
+                        <div class="event-title-preview" id="previewEventTitle">BILLIE EILISH: HIT ME HARD AND SOFT: THE TOUR</div>
+                        <div class="event-details-preview" id="previewEventDetails">Sat, Nov 22, 7:00 PM • Chase Center</div>
+                    </div>
+                </div>
+                <div class="countdown-preview">
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="previewDays">179</div>
+                        <div class="countdown-label">DAYS</div>
+                    </div>
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="previewHours">08</div>
+                        <div class="countdown-label">HOURS</div>
+                    </div>
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="previewMinutes">36</div>
+                        <div class="countdown-label">MINS</div>
+                    </div>
+                    <div class="countdown-unit">
+                        <div class="countdown-value" id="previewSeconds">11</div>
+                        <div class="countdown-label">SECS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <form id="ticketForm">
+            <div class="section">
+                <div class="section-title">Event Details</div>
+                
+                <div class="form-group">
+                    <label for="eventTitle">Event Title</label>
+                    <input type="text" id="eventTitle" placeholder="e.g., BILLIE EILISH: HIT ME HARD AND SOFT: THE TOUR">
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventDate">Event Date & Time</label>
+                    <input type="datetime-local" id="eventDate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventVenue">Venue</label>
+                    <input type="text" id="eventVenue" placeholder="e.g., Chase Center">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ticketType">Ticket Type</label>
+                    <select id="ticketType">
+                        <option value="American Express® Presale">American Express® Presale</option>
+                        <option value="Verified Fan Presale">Verified Fan Presale</option>
+                        <option value="General Sale">General Sale</option>
+                        <option value="VIP Package">VIP Package</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group" id="customTicketTypeGroup" style="display:none;">
+                    <label for="customTicketType">Custom Ticket Type</label>
+                    <input type="text" id="customTicketType" placeholder="Enter your custom ticket type" />
+                </div>
+            </div>
+            
+            <!-- Camping Ticket Date Section -->
+            <div class="section" id="campingDateSection">
+                <div class="section-title">Camping Ticket Dates</div>
+                <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+                    <small style="color: #1976d2; font-weight: 500;">
+                        💡 <strong>Use this for:</strong> Multi-day camping events, festivals, weekend passes, or any event spanning multiple days. 
+                        This will create dates like "Fri, 29 Aug - Sun, 31 Aug 2025" for your tickets.
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="isCampingEvent">Is this a camping event?</label>
+                    <select id="isCampingEvent" onchange="toggleCampingDateFields()">
+                        <option value="false">No - Single day event</option>
+                        <option value="true">Yes - Multi-day camping event</option>
+                    </select>
+                </div>
+                
+                <div id="campingDateFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="campingStartDate">Camping Start Date</label>
+                        <input type="date" id="campingStartDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="campingEndDate">Camping End Date</label>
+                        <input type="date" id="campingEndDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="campingDatePreview">Camping Date Preview</label>
+                        <div id="campingDatePreview" style="padding: 15px; background-color: #f5f5f5; border-radius: 8px; font-weight: bold; color: #333; text-align: center; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                            Select start and end dates to see preview
+                        </div>
+                        <button type="button" onclick="testCampingDatePreview()" style="margin-top: 10px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Test Preview</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="campingDateFormat">Date Format</label>
+                        <select id="campingDateFormat">
+                            <option value="short">Short (Fri, 29 Aug - Sun, 31 Aug 2025)</option>
+                            <option value="long">Long (Friday, August 29 - Sunday, August 31, 2025)</option>
+                            <option value="custom">Custom Format</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="customDateFormatGroup" style="display: none;">
+                        <label for="customDateFormat">Custom Date Format</label>
+                        <input type="text" id="customDateFormat" placeholder="e.g., Fri, 29 Aug - Sun, 31 Aug 2025">
+                        <small style="color: #666; font-size: 12px;">Use placeholders: {startDay}, {startMonth}, {startDate}, {endDay}, {endMonth}, {endDate}, {year}</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Seat Information</div>
+                
+                <div class="form-group">
+                    <label for="section">Section</label>
+                    <input type="text" id="section" placeholder="e.g., GAFLR">
+                </div>
+                
+                <div class="form-group">
+                    <label for="seatType">Seat Type</label>
+                    <select id="seatType">
+                        <option value="General Admission">General Admission</option>
+                        <option value="Reserved Seating">Reserved Seating</option>
+                        <option value="VIP Seating">VIP Seating</option>
+                        <option value="Floor Seating">Floor Seating</option>
+                        <option value="Balcony">Balcony</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="entryLevel">Entry Level Seat Label</label>
+                    <input type="text" id="entryLevel" placeholder="e.g., Mobile Entry, Entry Level Seat, Lower Section">
+                </div>
+                
+                <div class="form-group seat-details" id="seatDetailsGroup">
+                    <label for="row">Row</label>
+                    <input type="text" id="row" placeholder="e.g., 22">
+                </div>
+                
+                <div class="form-group seat-details" id="seatNumberGroup">
+                    <label for="seat">Seat</label>
+                    <input type="text" id="seat" placeholder="e.g., 24">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ticketCount">Number of Tickets</label>
+                    <input type="number" id="ticketCount" min="1" max="10" value="3">
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Countdown Timer</div>
+                
+                <div class="form-group">
+                    <label for="countdownTarget">Set Target Date and Time</label>
+                    <input type="datetime-local" id="countdownTarget">
+                </div>
+                
+                <div class="form-group">
+                    <label>Or set time remaining manually:</label>
+                    <div class="countdown-inputs">
+                        <input type="number" id="countdownDays" placeholder="Days" min="0" value="179">
+                        <input type="number" id="countdownHours" placeholder="Hours" min="0" max="23" value="8">
+                        <input type="number" id="countdownMinutes" placeholder="Minutes" min="0" max="59" value="36">
+                        <input type="number" id="countdownSeconds" placeholder="Seconds" min="0" max="59" value="11">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="showCountdownToggle">Show Countdown Timer for This Event</label>
+                    <input type="checkbox" id="showCountdownToggle" />
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Event Banner</div>
+                
+                <div class="form-group">
+                    <label for="bannerImage">Upload Custom Banner Image</label>
+                    <p class="banner-size-note" style="font-size: 12px; color: #666; margin-top: 5px;">
+                        Recommended size: 800×450 pixels. Max file size: 2MB.
+                    </p>
+                    <input type="file" id="bannerImage" accept="image/*">
+                </div>
+                
+                <div class="preview-image" id="bannerPreview"></div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="useDefaultBanner">Or use a default image</label>
+                    <select id="useDefaultBanner">
+                        <option value="">Select a default image</option>
+                        <option value="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&h=450&q=80">Concert</option>
+                        <option value="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&h=450&q=80">Festival</option>
+                        <option value="https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&h=450&q=80">Stadium</option>
+                        <option value="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&h=450&q=80">Concert Stage</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Venue Information</div>
+                
+                <div class="form-group">
+                    <label for="eventVenue">Venue Name</label>
+                    <input type="text" id="eventVenue" placeholder="e.g., Chase Center">
+                </div>
+                
+                <div class="form-group">
+                    <label for="venueLocation">Venue Location</label>
+                    <input type="text" id="venueLocation" placeholder="e.g., San Francisco, CA">
+                </div>
+                
+                <div class="form-group">
+                    <label for="venueImage">Venue Map/Seating Chart (Optional)</label>
+                    <input type="file" id="venueImage" accept="image/*">
+                    <div id="venueImagePreview" class="image-preview"></div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Map Settings</div>
+                
+                <div class="form-group">
+                    <label for="mapLocation">Map Location</label>
+                    <input type="text" id="mapLocation" placeholder="e.g., Chase Center, San Francisco CA">
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Add-ons</div>
+                
+                <div class="form-group">
+                    <label for="vipEarlyEntryOption">VIP Early Entry ($25.00)</label>
+                    <select id="vipEarlyEntryOption">
+                        <option value="false">Not Included</option>
+                        <option value="true">Include</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="merchPackageOption">Merchandise Package ($45.00)</label>
+                    <select id="merchPackageOption">
+                        <option value="false">Not Included</option>
+                        <option value="true">Include</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="premiumParkingOption">Premium Parking ($30.00)</label>
+                    <select id="premiumParkingOption">
+                        <option value="false">Not Included</option>
+                        <option value="true">Include</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Pricing Information</div>
+                
+                <div class="form-group">
+                    <label for="ticketPrice">Ticket Price ($)</label>
+                    <input type="number" id="ticketPrice" min="0" step="0.01" value="89.50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="serviceFee">Service Fee ($)</label>
+                    <input type="number" id="serviceFee" min="0" step="0.01" value="15.75">
+                </div>
+                
+                <div class="form-group">
+                    <label for="facilityCharge">Facility Charge ($)</label>
+                    <input type="number" id="facilityCharge" min="0" step="0.01" value="5.00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="processingFee">Order Processing Fee ($)</label>
+                    <input type="number" id="processingFee" min="0" step="0.01" value="5.50">
+                </div>
+
+                <div class="form-group">
+                    <label for="paymentDate">Payment Date</label>
+                    <input type="date" id="paymentDate" value="">
+                </div>
+            </div>
+            
+            <button class="button" id="saveButton" type="submit">Save Changes</button>
+            <button class="button" style="background-color: #FF4D4D; margin-top: 10px;" id="DeleteTicket" type="button">Delete Ticket</button>
+            <button class="button" style="background-color: #0052cc; margin-top: 10px;" id="createNewTicket" type="button">Create New Ticket</button>
+            <button class="button" style="background-color: #0052cc; margin-top: 10px;" type="button" onclick="window.location.href='my-events.html'">View My Events</button>
+            <button class="button" style="background-color: #666; margin-top: 10px;" type="button" onclick="window.location.href='ticket.html'">Back to Tickets</button>
+        </form>
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <span class="nav-label">Discover</span>
+        </a>
+        <a href="for-you.html" class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <span class="nav-label">Favourites</span>
+        </a>
+        <a href="my-events.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2 5c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5zm2 0v14h16V5H4zm8 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm-4-4h8v2H8V9zm0 4h8v2H8v-2z"/>
+            </svg>
+            <span class="nav-label">My Tickets</span>
+        </a>
+        <a href="sell.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+            </svg>
+            <span class="nav-label">Sell</span>
+        </a>
+        <a href="account.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span class="nav-label">My Account</span>
+        </a>
+    </nav>
+
+    <div id="saveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Changes Saved!</div>
+            <div class="modal-message">Your ticket settings have been updated successfully.</div>
+            <button class="modal-button" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <script src="banner-handler.js"></script>
+    <script src="subscription-enforcer.js"></script>
+
+
+    <script> 
+        // --- Versioning and Reset Logic ---
+        const DATA_VERSION = 2;
+        if (localStorage.getItem('dataVersion') != DATA_VERSION) {
+            localStorage.clear();
+            localStorage.setItem('dataVersion', DATA_VERSION);
+        }
+        document.getElementById('resetAppBtn').addEventListener('click', async function() {
+            if (confirm('This will clear all app data and reload. Continue?')) {
+                localStorage.clear();
+                localStorage.setItem('dataVersion', DATA_VERSION);
+                window.dispatchEvent(new Event('storageReset'));
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (const reg of regs) await reg.unregister();
+                }
+                location.reload();
+            }
+        });
+        // --- End Versioning and Reset Logic ---
+
+        // Navigation functionality
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (this.href.includes('for-you.html')) {
+                    e.preventDefault();
+                }
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Global countdown interval
+        let previewCountdownInterval = null;
+
+        
+
+
+        // Consolidated save logic
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize tickets array
+            if (!localStorage.getItem('tickets')) {
+                localStorage.setItem('tickets', JSON.stringify([]));
+            }
+
+            let tickets = JSON.parse(localStorage.getItem('tickets')) || [];
+            const activeTicketId = localStorage.getItem('activeTicket');
+            const createBtn = document.getElementById('createNewTicket');
+            const saveBtn = document.getElementById('saveButton');
+            const form = document.getElementById('ticketForm');
+
+            // Pre-populate form if editing
+            if (activeTicketId) {
+                const ticket = tickets.find(t => t.id === activeTicketId);
+                if (ticket) {
+                    // Fill form fields with ticket data
+                    document.getElementById('eventTitle').value = ticket.title || '';
+                    document.getElementById('eventDate').value = ticket.eventDate || '';
+                    document.getElementById('eventVenue').value = ticket.venue || '';
+                    document.getElementById('venueLocation').value = ticket.venueLocation || '';
+                    document.getElementById('ticketType').value = ticket.ticketType || '';
+                    document.getElementById('customTicketType').value = ticket.customTicketType || '';
+                    document.getElementById('section').value = ticket.section || '';
+                    document.getElementById('seatType').value = ticket.seatType || '';
+                    document.getElementById('entryLevel').value = ticket.entryLevel || '';
+                    document.getElementById('row').value = ticket.row || '';
+                    document.getElementById('seat').value = ticket.seat || '';
+                    document.getElementById('ticketCount').value = ticket.ticketCount || '1';
+                    document.getElementById('ticketPrice').value = ticket.ticketPrice || '';
+                    document.getElementById('serviceFee').value = ticket.serviceFee || '';
+                    document.getElementById('facilityCharge').value = ticket.facilityCharge || '';
+                    document.getElementById('processingFee').value = ticket.processingFee || '';
+                    document.getElementById('paymentDate').value = ticket.paymentDate || '';
+                    document.getElementById('mapLocation').value = ticket.mapLocation || '';
+                    document.getElementById('countdownTarget').value = ticket.countdownTargetDate || '';
+                    document.getElementById('showCountdownToggle').checked = ticket.showCountdown ?? true;
+
+                    // Camping event data
+                    document.getElementById('isCampingEvent').value = ticket.isCampingEvent ? 'true' : 'false';
+                    if (ticket.isCampingEvent) {
+                        document.getElementById('campingStartDate').value = ticket.campingStartDate || '';
+                        document.getElementById('campingEndDate').value = ticket.campingEndDate || '';
+                        document.getElementById('campingDateFormat').value = ticket.campingDateFormat || 'short';
+                        document.getElementById('customDateFormat').value = ticket.customDateFormat || '';
+                    }
+
+                    // Addons
+                    document.getElementById('vipEarlyEntryOption').value = ticket.addons.includes('VIP Early Entry') ? 'true' : 'false';
+                    document.getElementById('merchPackageOption').value = ticket.addons.includes('Merchandise Package') ? 'true' : 'false';
+                    document.getElementById('premiumParkingOption').value = ticket.addons.includes('Premium Parking') ? 'true' : 'false';
+
+                    // Images
+                    if (ticket.venueImage) {
+                        document.getElementById('venueImagePreview').style.backgroundImage = `url('${ticket.venueImage}')`;
+                    }
+                    localStorage.setItem('bannerImage', ticket.bannerImage || '');
+
+                    // Update previews
+                    toggleCampingDateFields();
+                    updateSeatInfoPreview();
+                    updateEventDetailsPreview();
+                    updateCampingDatePreview();
+                }
+            }
+
+            // Create new ticket
+            createBtn.addEventListener('click', async () => { // <--- make this async
+                if (tickets.length >= 5) {
+                    alert('You cannot create more than 5 tickets.');
+                    return;
+                }
+
+                const ok = await hasValidSubscription(); // safe to use await now
+                if (!ok) return; // stop if expired
+
+                saveTicket(true);
+            });
+
+
+            // Save (create or edit)
+            form.addEventListener('submit', async (e) => { // <--- make this async
+                e.preventDefault();
+
+                const ok = await hasValidSubscription();
+                if (!ok) return; // stop if expired
+
+                if (activeTicketId) {
+                    saveTicket(false); 
+                } else {
+                    saveTicket(true); 
+                }
+            });
+
+
+            function saveTicket(isNew) {
+                try {
+                    const title = document.getElementById('eventTitle').value;
+                    const isCampingEvent = document.getElementById('isCampingEvent').value === 'true';
+                    const campingStartDate = isCampingEvent ? document.getElementById('campingStartDate').value : '';
+                    const campingEndDate = isCampingEvent ? document.getElementById('campingEndDate').value : '';
+                    const campingDateFormat = isCampingEvent ? document.getElementById('campingDateFormat').value : '';
+                    const customDateFormat = isCampingEvent && campingDateFormat === 'custom' ? document.getElementById('customDateFormat').value : '';
+                    const eventDate = document.getElementById('eventDate').value;
+                    const venue = document.getElementById('eventVenue').value;
+                    const venueLocation = document.getElementById('venueLocation').value;
+                    const ticketType = document.getElementById('ticketType').value === 'Custom' ? (document.getElementById('customTicketType').value || 'Custom') : document.getElementById('ticketType').value;
+                    const section = document.getElementById('section').value;
+                    const seatType = document.getElementById('seatType').value;
+                    const entryLevel = document.getElementById('entryLevel').value;
+                    const row = seatType === 'General Admission' ? '' : document.getElementById('row').value;
+                    const seat = seatType === 'General Admission' ? '' : document.getElementById('seat').value;
+                    const ticketCount = parseInt(document.getElementById('ticketCount').value) || 1;
+                    const ticketPrice = parseFloat(document.getElementById('ticketPrice').value) || 0;
+                    const serviceFee = parseFloat(document.getElementById('serviceFee').value) || 0;
+                    const facilityCharge = parseFloat(document.getElementById('facilityCharge').value) || 0;
+                    const processingFee = parseFloat(document.getElementById('processingFee').value) || 0;
+                    const paymentDate = document.getElementById('paymentDate').value;
+                    const mapLocation = document.getElementById('mapLocation').value;
+                    const countdownTargetDate = document.getElementById('countdownTarget').value;
+                    const showCountdown = document.getElementById('showCountdownToggle').checked;
+                    const bannerImage = localStorage.getItem('bannerImage') || 'https://source.unsplash.com/random/800x450/?concert';
+                    const venueImage = localStorage.getItem('venueImage') || '';
+                    const addons = [];
+                    if (document.getElementById('vipEarlyEntryOption').value === 'true') addons.push('VIP Early Entry');
+                    if (document.getElementById('merchPackageOption').value === 'true') addons.push('Merchandise Package');
+                    if (document.getElementById('premiumParkingOption').value === 'true') addons.push('Premium Parking');
+
+                    // Validation
+                    if (!title || !venue || !ticketType) {
+                        alert('Please fill in all required fields (title, venue, ticket type).');
+                        return;
+                    }
+                    if (!eventDate && !isCampingEvent) {
+                        alert('Please specify an event date or enable camping event.');
+                        return;
+                    }
+                    if (isCampingEvent) {
+                        if (!campingStartDate || !campingEndDate) {
+                            alert('Please select both start and end dates for camping events.');
+                            return;
+                        }
+                        const start = new Date(campingStartDate);
+                        const end = new Date(campingEndDate);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        if (start > end) {
+                            alert('Start date must be before end date for camping events.');
+                            return;
+                        }
+                        if (start < today) {
+                            alert('Start date cannot be in the past for camping events.');
+                            return;
+                        }
+                        if (campingDateFormat === 'custom' && !customDateFormat.trim()) {
+                            alert('Please enter a custom date format for camping events.');
+                            return;
+                        }
+                    }
+                    if (countdownTargetDate) {
+                        const targetDate = new Date(countdownTargetDate);
+                        if (targetDate < new Date()) {
+                            alert('Countdown target date must be in the future.');
+                            return;
+                        }
+                    }
+                    if (isNew && tickets.length >= 4) {
+                        alert('You cannot create more than 4 tickets.');
+                        return;
+                    }
+
+                    // Format parseable date
+                    let parseableDate = '';
+                    let formattedDate = eventDate;
+                    if (isCampingEvent && campingStartDate && campingEndDate) {
+                        const start = new Date(campingStartDate);
+                        parseableDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+                        if (campingDateFormat === 'short') {
+                            formattedDate = formatShortCampingDate(start, new Date(campingEndDate));
+                        } else if (campingDateFormat === 'long') {
+                            formattedDate = formatLongCampingDate(start, new Date(campingEndDate));
+                        } else if (campingDateFormat === 'custom') {
+                            formattedDate = formatCustomCampingDate(start, new Date(campingEndDate));
+                        }
+                    } else if (eventDate) {
+                        const date = new Date(eventDate);
+                        parseableDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                        formattedDate = formatEventDate(date);
+                    }
+
+                    const ticket = {
+                        id: isNew ? Date.now().toString() : activeTicketId,
+                        title,
+                        date: formattedDate,
+                        parseableDate,
+                        eventDate, // Store raw datetime-local value for form repopulation
+                        venue,
+                        venueLocation,
+                        ticketType,
+                        customTicketType: ticketType === 'Custom' ? document.getElementById('customTicketType').value : '',
+                        section,
+                        seatType,
+                        entryLevel,
+                        row,
+                        seat,
+                        ticketCount,
+                        ticketPrice,
+                        serviceFee,
+                        facilityCharge,
+                        processingFee,
+                        paymentDate,
+                        addons,
+                        bannerImage,
+                        venueImage,
+                        mapLocation,
+                        countdownTargetDate,
+                        countdownDays: document.getElementById('countdownDays').value || '0',
+                        countdownHours: document.getElementById('countdownHours').value || '0',
+                        countdownMinutes: document.getElementById('countdownMinutes').value || '0',
+                        countdownSeconds: document.getElementById('countdownSeconds').value || '0',
+                        showCountdown,
+                        isCampingEvent,
+                        campingStartDate,
+                        campingEndDate,
+                        campingDateFormat,
+                        customDateFormat,
+                        createdAt: new Date().toISOString()
+                    };
+
+                    if (isNew) {
+                        tickets.push(ticket);
+                    } else {
+                        const index = tickets.findIndex(t => t.id === activeTicketId);
+                        if (index > -1) {
+                            tickets[index] = ticket;
+                        } else {
+                            alert('Error: The ticket you are trying to edit no longer exists.');
+                            return;
+                        }
+                    }
+
+
+                    localStorage.setItem('tickets', JSON.stringify(tickets));
+                    localStorage.removeItem('editingEventId');
+                    localStorage.setItem('addonCount', addons.length.toString());
+
+                    const modal = document.getElementById('saveModal');
+                    localStorage.setItem('activeTicket', ticket.id);
+                    if (modal) {
+                        modal.style.display = 'block';
+                        setTimeout(() => {
+                            modal.style.display = 'none';
+                            window.location.href = 'my-events.html';
+                        }, 2000);
+                    } else {
+                        window.location.href = 'my-events.html';
+                    }
+                } catch (error) {
+                    console.error('Error saving ticket:', error);
+                    alert('Error saving ticket. Please try again.');
+                }
+            }
+
+            // Close modal
+            function closeModal() {
+                const modal = document.getElementById('saveModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    window.location.href = 'my-events.html';
+                }
+            }
+
+            // Load saved values
+            function loadSavedValues() {
+                const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+                const activeTicketId = localStorage.getItem("activeTicket");
+                const activeTicket = tickets.find(t => t.id === activeTicketId);
+
+                if (!activeTicket) {
+                    console.warn("No active ticket found. Falling back to defaults.");
+                    return;
+                }
+
+                // Fill form fields from active ticket
+                document.getElementById('eventTitle').value = activeTicket.title || 'BILLIE EILISH: HIT ME HARD AND SOFT: THE TOUR';
+                document.getElementById('eventDate').value = activeTicket.eventDate || '';
+                document.getElementById('eventVenue').value = activeTicket.venue || 'Chase Center';
+                document.getElementById('venueLocation').value = activeTicket.venueLocation || 'San Francisco, CA';
+                document.getElementById('ticketType').value = activeTicket.ticketType || 'General Sale';
+                document.getElementById('customTicketType').value = activeTicket.customTicketType || '';
+                document.getElementById('section').value = activeTicket.section || 'GAFLR';
+                document.getElementById('seatType').value = activeTicket.seatType || 'General Admission';
+                document.getElementById('entryLevel').value = activeTicket.entryLevel || 'Mobile Entry';
+                document.getElementById('row').value = activeTicket.row || '22';
+                document.getElementById('seat').value = activeTicket.seat || '24';
+                document.getElementById('ticketCount').value = activeTicket.ticketCount || '3';
+                document.getElementById('ticketPrice').value = activeTicket.ticketPrice || '89.50';
+                document.getElementById('serviceFee').value = activeTicket.serviceFee || '15.75';
+                document.getElementById('facilityCharge').value = activeTicket.facilityCharge || '5.00';
+                document.getElementById('processingFee').value = activeTicket.processingFee || '5.50';
+                document.getElementById('paymentDate').value = activeTicket.paymentDate || '';
+                document.getElementById('mapLocation').value = activeTicket.mapLocation || 'Chase Center, San Francisco CA';
+                document.getElementById('countdownTarget').value = activeTicket.countdownTargetDate || '';
+                document.getElementById('countdownDays').value = activeTicket.countdownDays || '179';
+                document.getElementById('countdownHours').value = activeTicket.countdownHours || '8';
+                document.getElementById('countdownMinutes').value = activeTicket.countdownMinutes || '36';
+                document.getElementById('countdownSeconds').value = activeTicket.countdownSeconds || '11';
+                document.getElementById('showCountdownToggle').checked = activeTicket.showCountdown !== false;
+                document.getElementById('isCampingEvent').value = activeTicket.isCampingEvent ? 'true' : 'false';
+
+                if (activeTicket.isCampingEvent) {
+                    document.getElementById('campingStartDate').value = activeTicket.campingStartDate || '';
+                    document.getElementById('campingEndDate').value = activeTicket.campingEndDate || '';
+                    document.getElementById('campingDateFormat').value = activeTicket.campingDateFormat || 'short';
+                    document.getElementById('customDateFormat').value = activeTicket.customDateFormat || '';
+                }
+
+                document.getElementById('vipEarlyEntryOption').value = activeTicket.vipEarlyEntry || 'false';
+                document.getElementById('merchPackageOption').value = activeTicket.merchPackage || 'false';
+                document.getElementById('premiumParkingOption').value = activeTicket.premiumParking || 'false';
+            }
+
+
+            // Setup live preview updates
+            function setupLivePreviewUpdates() {
+                const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+                const activeTicketId = localStorage.getItem("activeTicket");
+                let activeTicketIndex = tickets.findIndex(t => t.id === activeTicketId);
+
+                if (activeTicketIndex === -1) {
+                    console.warn("No active ticket found for live preview updates.");
+                    return;
+                }
+
+                const activeTicket = tickets[activeTicketIndex];
+
+                const eventTitleInput = document.getElementById('eventTitle');
+                const eventDateInput = document.getElementById('eventDate');
+                const eventVenueInput = document.getElementById('eventVenue');
+                const ticketTypeSelect = document.getElementById('ticketType');
+                const customTicketTypeInput = document.getElementById('customTicketType');
+                const customTicketTypeGroup = document.getElementById('customTicketTypeGroup');
+                const sectionInput = document.getElementById('section');
+                const seatTypeSelect = document.getElementById('seatType');
+                const rowInput = document.getElementById('row');
+                const seatInput = document.getElementById('seat');
+                const countdownTarget = document.getElementById('countdownTarget');
+
+                // Helper: get value with priority ActiveTicket > Input > Default
+                function getValue(key, inputEl, fallback) {
+                    return (activeTicket && activeTicket[key]) ||
+                        (inputEl && inputEl.value) ||
+                        fallback;
+                }
+
+                // Helper: persist changes into active ticket
+                function saveField(key, value) {
+                    tickets[activeTicketIndex][key] = value;
+                    localStorage.setItem("tickets", JSON.stringify(tickets));
+                }
+
+                if (eventTitleInput) {
+                    eventTitleInput.value = getValue("title", eventTitleInput, "BILLIE EILISH: HIT ME HARD AND SOFT: THE TOUR");
+                    document.getElementById('previewEventTitle').textContent = eventTitleInput.value;
+
+                    eventTitleInput.addEventListener('input', () => {
+                        document.getElementById('previewEventTitle').textContent = eventTitleInput.value;
+                        saveField("title", eventTitleInput.value);
+                    });
+                }
+
+                if (eventDateInput && eventVenueInput) {
+                    eventDateInput.value = getValue("eventDate", eventDateInput, "");
+                    eventVenueInput.value = getValue("venue", eventVenueInput, "Chase Center");
+
+                    const updateEventDetails = () => {
+                        const date = eventDateInput.value
+                            ? formatEventDate(new Date(eventDateInput.value))
+                            : "Sat, Nov 22, 7:00 PM";
+                        const venue = eventVenueInput.value || "Chase Center";
+                        document.getElementById('previewEventDetails').textContent = `${date} • ${venue}`;
+                        saveField("eventDate", eventDateInput.value);
+                        saveField("venue", eventVenueInput.value);
+                    };
+                    updateEventDetails();
+                    eventDateInput.addEventListener('input', updateEventDetails);
+                    eventVenueInput.addEventListener('input', updateEventDetails);
+                }
+
+                if (ticketTypeSelect && customTicketTypeInput && customTicketTypeGroup) {
+                    ticketTypeSelect.value = getValue("ticketType", ticketTypeSelect, "General Sale");
+                    customTicketTypeInput.value = getValue("customTicketType", customTicketTypeInput, "");
+
+                    const updateTicketType = () => {
+                        if (ticketTypeSelect.value === "Custom") {
+                            customTicketTypeGroup.style.display = "block";
+                            document.getElementById("previewTicketType").textContent =
+                                customTicketTypeInput.value || "Custom";
+                            saveField("ticketType", "Custom");
+                            saveField("customTicketType", customTicketTypeInput.value);
+                        } else {
+                            customTicketTypeGroup.style.display = "none";
+                            document.getElementById("previewTicketType").textContent =
+                                ticketTypeSelect.value || "General Sale";
+                            saveField("ticketType", ticketTypeSelect.value);
+                            saveField("customTicketType", "");
+                        }
+                    };
+                    updateTicketType();
+                    ticketTypeSelect.addEventListener("change", updateTicketType);
+                    customTicketTypeInput.addEventListener("input", updateTicketType);
+                }
+
+                if (sectionInput && seatTypeSelect && rowInput && seatInput) {
+                    sectionInput.value = getValue("section", sectionInput, "GAFLR");
+                    seatTypeSelect.value = getValue("seatType", seatTypeSelect, "General Admission");
+                    rowInput.value = getValue("row", rowInput, "22");
+                    seatInput.value = getValue("seat", seatInput, "24");
+
+                    updateSeatInfoPreview();
+
+                    [sectionInput, seatTypeSelect, rowInput, seatInput].forEach(input => {
+                        input.addEventListener("input", () => {
+                            updateSeatInfoPreview();
+                            saveField("section", sectionInput.value);
+                            saveField("seatType", seatTypeSelect.value);
+                            saveField("row", rowInput.value);
+                            saveField("seat", seatInput.value);
+                        });
+                        input.addEventListener("change", () => {
+                            updateSeatInfoPreview();
+                            saveField("section", sectionInput.value);
+                            saveField("seatType", seatTypeSelect.value);
+                            saveField("row", rowInput.value);
+                            saveField("seat", seatInput.value);
+                        });
+                    });
+                }
+
+                if (countdownTarget) {
+                    countdownTarget.value = getValue("countdownTargetDate", countdownTarget, "");
+
+                    countdownTarget.addEventListener("change", () => {
+                        if (countdownTarget.value) {
+                            const targetDate = new Date(countdownTarget.value);
+                            if (targetDate < new Date()) {
+                                alert("Please select a future date and time");
+                                countdownTarget.value = "";
+                                return;
+                            }
+                            updateCountdownFromTargetDate(targetDate);
+                            restartPreviewCountdown();
+                            if (document.getElementById("isCampingEvent").value !== "true") {
+                                document.getElementById("eventDate").value = countdownTarget.value;
+                            }
+                            saveField("countdownTargetDate", countdownTarget.value);
+                        }
+                    });
+                }
+
+                ["countdownDays", "countdownHours", "countdownMinutes", "countdownSeconds"].forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.value = getValue(id, input, "0"); // default to 0
+                        input.addEventListener("input", () => {
+                            restartPreviewCountdown();
+                            saveField(id, input.value);
+                        });
+                    }
+                });
+            }
+
+
+            // Update seat info preview
+            function updateSeatInfoPreview() {
+                const seatInfoContainer = document.getElementById('seatInfoContainer');
+                if (!seatInfoContainer) return;
+
+                const seatType = document.getElementById('seatType').value;
+                const section = document.getElementById('section').value;
+                const row = document.getElementById('row').value;
+                const seat = document.getElementById('seat').value;
+
+                seatInfoContainer.innerHTML = '';
+                if (seatType === 'General Admission') {
+                    seatInfoContainer.innerHTML = `
+                        <div class="general-admission-layout">
+                            <div class="seat-column">
+                                <div class="seat-label">SECTION</div>
+                                <div class="seat-value">${section || 'GAFLR'}</div>
+                            </div>
+                            <div class="general-admission-text">GENERAL ADMISSION</div>
+                        </div>
+                    `;
+                } else {
+                    seatInfoContainer.innerHTML = `
+                        <div class="seat-column">
+                            <div class="seat-label">SECTION</div>
+                            <div class="seat-value">${section || 'GAFLR'}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="seat-label">ROW</div>
+                            <div class="seat-value">${row || '22'}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="seat-label">SEAT</div>
+                            <div class="seat-value">${seat || '24'}</div>
+                        </div>
+                    `;
+                }
+            }
+
+            // Update event details preview
+            function updateEventDetailsPreview() {
+                const eventDateInput = document.getElementById('eventDate');
+                const eventVenueInput = document.getElementById('eventVenue');
+                const previewEventDetails = document.getElementById('previewEventDetails');
+                const isCampingEvent = document.getElementById('isCampingEvent').value === 'true';
+                if (eventDateInput && eventVenueInput && previewEventDetails) {
+                    let date = 'Sat, Nov 22, 7:00 PM';
+                    if (isCampingEvent) {
+                        const campingStartDate = document.getElementById('campingStartDate').value;
+                        const campingEndDate = document.getElementById('campingEndDate').value;
+                        const campingDateFormat = document.getElementById('campingDateFormat').value;
+                        if (campingStartDate && campingEndDate) {
+                            const start = new Date(campingStartDate);
+                            const end = new Date(campingEndDate);
+                            if (campingDateFormat === 'short') {
+                                date = formatShortCampingDate(start, end);
+                            } else if (campingDateFormat === 'long') {
+                                date = formatLongCampingDate(start, end);
+                            } else if (campingDateFormat === 'custom') {
+                                date = formatCustomCampingDate(start, end);
+                            }
+                        }
+                    } else if (eventDateInput.value) {
+                        date = formatEventDate(new Date(eventDateInput.value));
+                    }
+                    const venue = eventVenueInput.value || 'Chase Center';
+                    previewEventDetails.textContent = `${date} • ${venue}`;
+                }
+            }
+
+            // Start preview countdown
+            function startPreviewCountdown() {
+                if (previewCountdownInterval) {
+                    clearInterval(previewCountdownInterval);
+                }
+
+                const countdownTarget = document.getElementById('countdownTarget').value;
+                let targetDate;
+                if (countdownTarget) {
+                    targetDate = new Date(countdownTarget);
+                } else {
+                    const days = parseInt(document.getElementById('countdownDays').value) || 0;
+                    const hours = parseInt(document.getElementById('countdownHours').value) || 0;
+                    const minutes = parseInt(document.getElementById('countdownMinutes').value) || 0;
+                    const seconds = parseInt(document.getElementById('countdownSeconds').value) || 0;
+                    targetDate = new Date();
+                    targetDate.setDate(targetDate.getDate() + days);
+                    targetDate.setHours(targetDate.getHours() + hours);
+                    targetDate.setMinutes(targetDate.getMinutes() + minutes);
+                    targetDate.setSeconds(targetDate.getSeconds() + seconds);
+                }
+
+                localStorage.setItem('countdownTargetDate', targetDate.toISOString());
+
+                previewCountdownInterval = setInterval(() => {
+                    const now = new Date();
+                    const diff = targetDate - now;
+
+                    if (diff <= 0) {
+                        document.getElementById('previewDays').textContent = '00';
+                        document.getElementById('previewHours').textContent = '00';
+                        document.getElementById('previewMinutes').textContent = '00';
+                        document.getElementById('previewSeconds').textContent = '00';
+                        clearInterval(previewCountdownInterval);
+                        return;
+                    }
+
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    document.getElementById('previewDays').textContent = String(days).padStart(2, '0');
+                    document.getElementById('previewHours').textContent = String(hours).padStart(2, '0');
+                    document.getElementById('previewMinutes').textContent = String(minutes).padStart(2, '0');
+                    document.getElementById('previewSeconds').textContent = String(seconds).padStart(2, '0');
+                }, 1000);
+            }
+
+            function restartPreviewCountdown() {
+                startPreviewCountdown();
+            }
+
+            function updateCountdownFromTargetDate(targetDate) {
+                const now = new Date();
+                const diff = targetDate - now;
+
+                if (diff > 0) {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    document.getElementById('countdownDays').value = days;
+                    document.getElementById('countdownHours').value = hours;
+                    document.getElementById('countdownMinutes').value = minutes;
+                    document.getElementById('countdownSeconds').value = seconds;
+
+                    document.getElementById('previewDays').textContent = String(days).padStart(2, '0');
+                    document.getElementById('previewHours').textContent = String(hours).padStart(2, '0');
+                    document.getElementById('previewMinutes').textContent = String(minutes).padStart(2, '0');
+                    document.getElementById('previewSeconds').textContent = String(seconds).padStart(2, '0');
+                }
+            }
+
+            // Camping date functions
+            function toggleCampingDateFields() {
+                const isCampingEvent = document.getElementById('isCampingEvent').value === 'true';
+                const campingDateFields = document.getElementById('campingDateFields');
+                const eventDateInput = document.getElementById('eventDate');
+
+                if (isCampingEvent) {
+                    campingDateFields.style.display = 'block';
+                    eventDateInput.disabled = true;
+                    autoPopulateCampingDates();
+                    updateCampingDatePreview();
+                } else {
+                    campingDateFields.style.display = 'none';
+                    eventDateInput.disabled = false;
+                    resetCampingDatePreview();
+                    if (!eventDateInput.value) {
+                        const now = new Date();
+                        now.setDate(now.getDate() + 7);
+                        eventDateInput.value = now.toISOString().slice(0, 16);
+                    }
+                    updateEventDetailsPreview();
+                }
+            }
+
+            function resetCampingDatePreview() {
+                const preview = document.getElementById('campingDatePreview');
+                if (preview) {
+                    preview.textContent = 'Select start and end dates to see preview';
+                    preview.style.color = '#666';
+                    preview.style.backgroundColor = '#f5f5f5';
+                    preview.style.borderColor = '#e0e0e0';
+                }
+            }
+
+            function autoPopulateCampingDates() {
+                const startDateInput = document.getElementById('campingStartDate');
+                const endDateInput = document.getElementById('campingEndDate');
+                if (startDateInput && endDateInput && !startDateInput.value) {
+                    const today = new Date();
+                    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    const friday = new Date(nextWeek);
+                    friday.setDate(friday.getDate() + (5 - friday.getDay() + 7) % 7);
+                    startDateInput.value = friday.toISOString().split('T')[0];
+                    const sunday = new Date(friday);
+                    sunday.setDate(friday.getDate() + 2);
+                    endDateInput.value = sunday.toISOString().split('T')[0];
+                    updateCampingDatePreview();
+                }
+            }
+
+            function updateCampingDatePreview() {
+                const startDate = document.getElementById('campingStartDate').value;
+                const endDate = document.getElementById('campingEndDate').value;
+                const format = document.getElementById('campingDateFormat').value;
+                const preview = document.getElementById('campingDatePreview');
+
+                if (!startDate || !endDate) {
+                    preview.textContent = 'Select start and end dates to see preview';
+                    preview.style.color = '#666';
+                    return;
+                }
+
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+
+                if (start > end) {
+                    preview.textContent = 'Start date must be before end date';
+                    preview.style.color = '#d32f2f';
+                    return;
+                }
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (start < today) {
+                    preview.textContent = 'Start date cannot be in the past';
+                    preview.style.color = '#d32f2f';
+                    return;
+                }
+
+                let formattedDate = '';
+                if (format === 'short') {
+                    formattedDate = formatShortCampingDate(start, end);
+                } else if (format === 'long') {
+                    formattedDate = formatLongCampingDate(start, end);
+                } else if (format === 'custom') {
+                    formattedDate = formatCustomCampingDate(start, end);
+                }
+
+                preview.textContent = formattedDate;
+                preview.style.color = '#333';
+                document.getElementById('eventDate').value = ''; // Clear eventDate for camping events
+                localStorage.setItem('campingParseableDate', `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`);
+                updateEventDetailsPreview();
+            }
+
+            function testCampingDatePreview() {
+                console.log('=== TESTING CAMPING DATE PREVIEW ===');
+                const startDate = document.getElementById('campingStartDate').value;
+                const endDate = document.getElementById('campingEndDate').value;
+                const format = document.getElementById('campingDateFormat').value;
+                console.log('Raw input values:', { startDate, endDate, format });
+
+                if (!startDate || !endDate) {
+                    console.log('Missing dates');
+                    return;
+                }
+
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                console.log('Parsed dates:', { start, end, startValid: !isNaN(start), endValid: !isNaN(end) });
+
+                if (isNaN(start) || isNaN(end)) {
+                    console.log('Invalid dates parsed');
+                    return;
+                }
+
+                console.log('Date comparison:', start > end ? 'Start > End (INVALID)' : 'Start <= End (VALID)');
+                if (format === 'short') {
+                    console.log('Short format result:', formatShortCampingDate(start, end));
+                }
+            }
+
+            function formatShortCampingDate(start, end) {
+                const startDay = start.toLocaleDateString('en-US', { weekday: 'short' });
+                const startDate = start.getDate();
+                const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+                const endDay = end.toLocaleDateString('en-US', { weekday: 'short' });
+                const endDate = end.getDate();
+                const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+                const year = start.getFullYear();
+
+                if (start.getMonth() === end.getMonth()) {
+                    return `${startDay}, ${startDate} ${startMonth} - ${endDay}, ${endDate} ${endMonth} ${year}`;
+                } else {
+                    return `${startDay}, ${startDate} ${startMonth} - ${endDay}, ${endDate} ${endMonth} ${year}`;
+                }
+            }
+
+            function formatLongCampingDate(start, end) {
+                const startDay = start.toLocaleDateString('en-US', { weekday: 'long' });
+                const startDate = start.getDate();
+                const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
+                const endDay = end.toLocaleDateString('en-US', { weekday: 'long' });
+                const endDate = end.getDate();
+                const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
+                const year = start.getFullYear();
+
+                if (start.getMonth() === end.getMonth()) {
+                    return `${startDay}, ${startMonth} ${startDate} - ${endDay}, ${endMonth} ${endDate}, ${year}`;
+                } else {
+                    return `${startDay}, ${startMonth} ${startDate} - ${endDay}, ${endMonth} ${endDate}, ${year}`;
+                }
+            }
+
+            function formatCustomCampingDate(start, end) {
+                const customFormat = document.getElementById('customDateFormat').value;
+                if (!customFormat) return formatShortCampingDate(start, end);
+
+                const startDay = start.toLocaleDateString('en-US', { weekday: 'short' });
+                const startDate = start.getDate();
+                const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+                const endDay = end.toLocaleDateString('en-US', { weekday: 'short' });
+                const endDate = end.getDate();
+                const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+                const year = start.getFullYear();
+
+                return customFormat
+                    .replace(/{startDay}/g, startDay)
+                    .replace(/{startDate}/g, startDate)
+                    .replace(/{startMonth}/g, startMonth)
+                    .replace(/{endDay}/g, endDay)
+                    .replace(/{endDate}/g, endDate)
+                    .replace(/{endMonth}/g, endMonth)
+                    .replace(/{year}/g, year);
+            }
+
+            function formatEventDate(date) {
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const dayName = days[date.getDay()];
+                const monthName = months[date.getMonth()];
+                const dayNum = date.getDate();
+                const year = date.getFullYear();
+                let hours = date.getHours();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12 || 12;
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                return `${dayName}, ${monthName} ${dayNum}, ${year}, ${hours}:${minutes} ${ampm}`;
+            }
+
+            // Initialize seat details visibility
+            function initializeSeatDetailsVisibility() {
+                const seatType = document.getElementById('seatType');
+                const seatDetailsGroups = document.querySelectorAll('.seat-details');
+                seatType.addEventListener('change', () => {
+                    if (seatType.value === 'General Admission') {
+                        seatDetailsGroups.forEach(group => group.style.display = 'none');
+                    } else {
+                        seatDetailsGroups.forEach(group => group.style.display = 'block');
+                    }
+                    updateSeatInfoPreview();
+                });
+                if (seatType.value === 'General Admission') {
+                    seatDetailsGroups.forEach(group => group.style.display = 'none');
+                }
+            }
+
+            // Venue image handling
+            document.getElementById('venueImage').addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    if (file.size > 1 * 1024 * 1024) {
+                        alert('Venue image must be less than 1MB');
+                        e.target.value = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        localStorage.setItem('venueImage', event.target.result);
+                        document.getElementById('venueImagePreview').style.backgroundImage = `url('${event.target.result}')`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Initialize camping date functionality
+            function initializeCampingDateFunctionality() {
+                const campingStartDate = document.getElementById('campingStartDate');
+                const campingEndDate = document.getElementById('campingEndDate');
+                const campingDateFormat = document.getElementById('campingDateFormat');
+                const isCampingEvent = document.getElementById('isCampingEvent');
+
+                if (campingStartDate && campingEndDate && campingDateFormat && isCampingEvent) {
+                    campingStartDate.addEventListener('change', updateCampingDatePreview);
+                    campingEndDate.addEventListener('change', updateCampingDatePreview);
+                    campingDateFormat.addEventListener('change', () => {
+                        const customDateFormatGroup = document.getElementById('customDateFormatGroup');
+                        if (campingDateFormat.value === 'custom') {
+                            customDateFormatGroup.style.display = 'block';
+                        } else {
+                            customDateFormatGroup.style.display = 'none';
+                        }
+                        updateCampingDatePreview();
+                    });
+                    isCampingEvent.addEventListener('change', toggleCampingDateFields);
+                    document.getElementById('customDateFormat').addEventListener('input', updateCampingDatePreview);
+                }
+            }
+
+            document.getElementById('DeleteTicket').addEventListener('click', () => {
+                if (!activeTicketId) return;
+                tickets = tickets.filter(t => t.id !== activeTicketId);
+                localStorage.setItem('tickets', JSON.stringify(tickets));
+                localStorage.removeItem('activeTicket');
+                window.location.href = 'my-events.html';
+            });
+            
+            // Initialize all functionality
+            loadSavedValues();
+            setupLivePreviewUpdates();
+            initializeSeatDetailsVisibility();
+            initializeCampingDateFunctionality();
+            toggleCampingDateFields();
+            updateSeatInfoPreview();
+            updateEventDetailsPreview();
+            startPreviewCountdown();
+        });
+    </script>

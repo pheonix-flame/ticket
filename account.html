@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>My Account</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sat: env(safe-area-inset-top);
+            --sar: env(safe-area-inset-right);
+            --sab: env(safe-area-inset-bottom);
+            --sal: env(safe-area-inset-left);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.5;
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .content-wrapper {
+            /* Removed position fixed and overflow hidden to allow scrolling on Android */
+            /* position: fixed; */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            /* overflow: hidden; */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .account-header {
+            background-color: #000;
+            color: white;
+            padding: 16px 20px 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin-top: calc(-1 * env(safe-area-inset-top));
+            padding-top: calc(16px + env(safe-area-inset-top));
+        }
+
+        .scrollable-content {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex-grow: 1;
+            padding-top: 8px; /* Added padding to prevent overlap */
+        }
+
+        .page-title {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: white;
+        }
+
+        .user-info {
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info i {
+            font-size: 1.8rem;
+            color: #a1a1a6;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: white;
+        }
+
+        .user-email {
+            font-size: 1rem;
+            color: #a1a1a6;
+        }
+
+        .section {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .section:first-child {
+            padding-top: 8px; /* Extra padding for first section */
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #1d1d1f;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            cursor: pointer;
+        }
+
+        .menu-item:not(:last-child) {
+            border-bottom: 1px solid #f5f5f7;
+        }
+
+        .menu-item .icon {
+            width: 24px;
+            text-align: center;
+            margin-right: 12px;
+            color: #86868b;
+        }
+
+        .menu-item .text {
+            flex-grow: 1;
+            font-size: 1rem;
+        }
+
+        .menu-item .value {
+            color: #86868b;
+            margin-right: 8px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background-color: #e0e0e0;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        .toggle.active {
+            background-color: #0071e3;
+        }
+
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active .toggle-knob {
+            transform: translateX(20px);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        .modal-content {
+            background-color: white;
+            width: calc(100% - 40px);
+            max-width: 400px;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            margin: env(safe-area-inset-top) auto;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+        }
+
+        .modal-btn.cancel {
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+        }
+
+        .modal-btn.confirm {
+            background-color: #0071e3;
+            color: white;
+        }
+
+        .country-select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 1rem;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .checkbox-item input {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .sign-out-btn {
+            color: #ff3b30;
+        }
+
+        /* iOS PWA specific styles */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: 0;
+            }
+        }
+
+        /* Dynamic Island specific adjustments */
+        @media (max-height: 700px) {
+            .account-header {
+                padding-top: calc(16px + env(safe-area-inset-top));
+            }
+            
+            .page-title {
+                margin-bottom: 12px;
+            }
+        }
+
+
+
+        html {
+  touch-action: manipulation;
+  overflow-y: auto !important;
+  position: relative !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  overscroll-behavior-y: contain;
+  min-height: 100vh;
+}
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <div class="account-header">
+            <div class="back-button" onclick="window.history.back()">Back</div>
+            <div class="page-title">My Account</div>
+            <div></div>
+            <div class="user-info" onclick="openEditProfileModal()">
+                <i class="fas fa-user-circle"></i>
+                <div class="user-details">
+                    <div class="user-name" id="user-name">Hailey Steuter</div>
+                    <div class="user-email" id="user-email">Haileysteuter382@gmail.com</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="scrollable-content">
+            <div class="section">
+                <div class="section-title">Notifications</div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-bell"></i></div>
+                    <div class="text">My Notifications</div>
+                    <div class="toggle" onclick="toggleSetting(this)">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-envelope"></i></div>
+                    <div class="text">Receive Notifications?</div>
+                    <div class="toggle" onclick="toggleSetting(this)">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Location Settings</div>
+                <div class="menu-item" onclick="openLocationModal()">
+                    <div class="icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="text">My Location</div>
+                    <div class="value" id="user-location">Inglewood, CA</div>
+                    <i class="fas fa-chevron-right" style="color: #d2d2d7;"></i>
+                </div>
+                <div class="menu-item" onclick="openCountryModal()">
+                    <div class="icon"><i class="fas fa-globe"></i></div>
+                    <div class="text">My Country</div>
+                    <div class="value" id="user-country">United States</div>
+                    <i class="fas fa-chevron-right" style="color: #d2d2d7;"></i>
+                </div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-location-arrow"></i></div>
+                    <div class="text">Location Based Content</div>
+                    <div class="toggle active" onclick="toggleSetting(this)">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Preferences</div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-heart"></i></div>
+                    <div class="text">My Favorites</div>
+                    <div class="toggle" onclick="toggleSetting(this)">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-credit-card"></i></div>
+                    <div class="text">Saved Payment Methods</div>
+                    <div class="toggle active" onclick="toggleSetting(this)">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-mobile-alt"></i></div>
+                    <div class="text">Change App Icon</div>
+                    <div class="toggle" onclick="toggleSetting(this)">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Help & Guidance</div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-question-circle"></i></div>
+                    <div class="text">Need Help?</div>
+                    <i class="fas fa-chevron-right" style="color: #d2d2d7;"></i>
+                </div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-comment-alt"></i></div>
+                    <div class="text">Give Us Feedback</div>
+                    <i class="fas fa-chevron-right" style="color: #d2d2d7;"></i>
+                </div>
+                <div class="menu-item">
+                    <div class="icon"><i class="fas fa-gavel"></i></div>
+                    <div class="text">Legal</div>
+                    <i class="fas fa-chevron-right" style="color: #d2d2d7;"></i>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="menu-item" onclick="openSignOutModal()" style="justify-content: center;">
+                    <div class="text sign-out-btn"><i class="fas fa-sign-out-alt"></i> Sign Out</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal" id="editProfileModal">
+        <div class="modal-content">
+            <div class="modal-title">Edit Profile</div>
+            <input type="text" class="modal-input" id="edit-name" placeholder="Full Name">
+            <input type="email" class="modal-input" id="edit-email" placeholder="Email Address">
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('editProfileModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="saveProfile()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Modal -->
+    <div class="modal" id="locationModal">
+        <div class="modal-content">
+            <div class="modal-title">Edit Location</div>
+            <input type="text" class="modal-input" id="edit-location" placeholder="City, State">
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('locationModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="saveLocation()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Country Modal -->
+    <div class="modal" id="countryModal">
+        <div class="modal-content">
+            <div class="modal-title">Select Country</div>
+            <select class="country-select" id="edit-country">
+                <option value="United States">United States</option>
+                <option value="Canada">Canada</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Germany">Germany</option>
+                <option value="France">France</option>
+                <option value="Italy">Italy</option>
+                <option value="Spain">Spain</option>
+                <option value="Netherlands">Netherlands</option>
+                <option value="Belgium">Belgium</option>
+                <option value="Sweden">Sweden</option>
+                <option value="Switzerland">Switzerland</option>
+                <option value="Austria">Austria</option>
+                <option value="Norway">Norway</option>
+                <option value="Denmark">Denmark</option>
+                <option value="Finland">Finland</option>
+                <option value="Portugal">Portugal</option>
+                <option value="Ireland">Ireland</option>
+            </select>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('countryModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="saveCountry()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign Out Modal -->
+    <div class="modal" id="signOutModal">
+        <div class="modal-content">
+            <div class="modal-title">Sign Out</div>
+            <p style="margin-bottom: 20px;">Are you sure you want to sign out?</p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('signOutModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="signOut()">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="subscription-enforcer.js"></script>
+
+    <script>
+        // Toggle switches functionality
+        function toggleSetting(element) {
+            element.classList.toggle('active');
+        }
+
+        // Modal functions
+        function openEditProfileModal() {
+            document.getElementById('edit-name').value = document.getElementById('user-name').textContent;
+            document.getElementById('edit-email').value = document.getElementById('user-email').textContent;
+            document.getElementById('editProfileModal').style.display = 'flex';
+        }
+
+        function openLocationModal() {
+            document.getElementById('edit-location').value = document.getElementById('user-location').textContent;
+            document.getElementById('locationModal').style.display = 'flex';
+        }
+
+        function openCountryModal() {
+            document.getElementById('edit-country').value = document.getElementById('user-country').textContent;
+            document.getElementById('countryModal').style.display = 'flex';
+        }
+
+        function openSignOutModal() {
+            document.getElementById('signOutModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Save functions
+        function saveProfile() {
+            const newName = document.getElementById('edit-name').value;
+            const newEmail = document.getElementById('edit-email').value;
+            
+            if (newName && newEmail) {
+                document.getElementById('user-name').textContent = newName;
+                document.getElementById('user-email').textContent = newEmail;
+                // Store user name and email in localStorage for persistence
+                localStorage.setItem('userName', newName);
+                localStorage.setItem('userEmail', newEmail);
+                closeModal('editProfileModal');
+            } else {
+                alert('Please fill in all fields');
+            }
+        }
+
+        function saveLocation() {
+            const newLocation = document.getElementById('edit-location').value;
+            if (newLocation) {
+                document.getElementById('user-location').textContent = newLocation;
+                // Store location in localStorage for persistence
+                localStorage.setItem('userLocation', newLocation);
+                closeModal('locationModal');
+            } else {
+                alert('Please enter a location');
+            }
+        }
+
+        function saveCountry() {
+            const newCountry = document.getElementById('edit-country').value;
+            document.getElementById('user-country').textContent = newCountry;
+            // Store country in localStorage for persistence
+            localStorage.setItem('userCountry', newCountry);
+            closeModal('countryModal');
+        }
+
+        function signOut() {
+            alert('You have been signed out');
+            closeModal('signOutModal');
+            // In a real app, you would redirect to login page
+            // window.location.href = '/login';
+        }
+
+        // iOS PWA specific adjustments
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if standalone mode (installed to home screen)
+            if (window.matchMedia('(display-mode: standalone)').matches || 
+                window.navigator.standalone === true) {
+                document.body.classList.add('standalone');
+            }
+            
+            // Load saved user data from localStorage on page load
+            const savedName = localStorage.getItem('userName');
+            const savedEmail = localStorage.getItem('userEmail');
+            const savedLocation = localStorage.getItem('userLocation');
+            const savedCountry = localStorage.getItem('userCountry');
+            
+            // Update display with saved values if they exist
+            if (savedName) {
+                document.getElementById('user-name').textContent = savedName;
+            }
+            if (savedEmail) {
+                document.getElementById('user-email').textContent = savedEmail;
+            }
+            if (savedLocation) {
+                document.getElementById('user-location').textContent = savedLocation;
+            }
+            if (savedCountry) {
+                document.getElementById('user-country').textContent = savedCountry;
+            }
+            
+            // Handle iOS viewport resize when keyboard appears
+            window.addEventListener('resize', function() {
+                if (document.activeElement.tagName === 'INPUT' || 
+                    document.activeElement.tagName === 'TEXTAREA') {
+                    window.scrollTo(0, 0);
+                }
+            });
+        });
+    </script>
+
+    <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW registered for scope:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+
+<script>
+// Nuclear option: Smarter standalone enforcement
+if (window.matchMedia('(display-mode: browser)').matches && !sessionStorage.getItem('pwaRedirected')) {
+  sessionStorage.setItem('pwaRedirected', 'true');
+  const intentUrl = `intent://${window.location.host}#Intent;package=com.android.chrome;scheme=https;end`;
+  
+  // Timeout prevents immediate reload loops
+  setTimeout(() => {
+    window.location.href = intentUrl;
+  }, 500);
+}
+</script>
+</body>
+</html>

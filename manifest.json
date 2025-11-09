@@ -1,0 +1,23 @@
+{
+  "name": "Ticket Master",
+  "short_name": "Ticket Master",
+  "description": "Manage and access your event tickets easily.",
+  "theme_color": "#026CDF",
+  "background_color": "#026CDF",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/android-launchericon-192-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/android-launchericon-512-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#000000">
+
+    <title>My Events</title>
+    <style>
+        /* Prevent zooming and ensure fixed layout */
+        html, body {
+            touch-action: manipulation;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            /* Remove overflow: hidden to allow scrolling */
+        }
+        
+        input, select, textarea {
+            font-size: 16px; /* Prevents iOS zoom on focus */
+        }
+        
+        * {
+            box-sizing: border-box;
+             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f5f5;
+            /* Set proper overflow for body */
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            min-height: 100vh;
+        }
+        
+        /* Fix for scrolling issue on Android and other devices */
+        #eventContainer {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            height: 100%;
+            flex-grow: 1;
+        }
+
+        .header {
+            background-color: #1a1a1a;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* Adjust for status bar */
+            padding-top: calc(15px + env(safe-area-inset-top));
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Add this for standalone mode */
+        .standalone-mode .header {
+            padding-top: calc(15px + env(safe-area-inset-top));
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .help-btn {
+            color: white;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: #0052cc;
+            color: white;
+            position: sticky;
+            top: calc(50px + env(safe-area-inset-top)); /* Adjust based on header height */
+            z-index: 9;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px 0;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: white;
+        }
+
+        .event-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 80px; /* Add padding to account for bottom nav */
+            min-height: 0;
+        }
+
+        .event-card {
+            position: relative;
+            height: 220px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .event-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .event-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+            padding: 20px;
+            color: white;
+        }
+
+        .event-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .event-details {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .ticket-count {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .ticket-count svg {
+            margin-right: 5px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid #e0e0e0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            text-decoration: none;
+            padding: 8px 12px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: #024ddf;
+        }
+
+        .nav-item:hover {
+            color: #024ddf;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            fill: currentColor;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .no-events {
+            text-align: center;
+            padding: 50px 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>My Events</h1>
+        <a href="#" class="help-btn">Help</a>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab active">UPCOMING (<span id="upcomingCount">0</span>)</div>
+        <div class="tab">PAST (<span id="pastCount">0</span>)</div>
+    </div>
+    
+    <div class="event-container" id="eventContainer">
+        <!-- Events will be loaded dynamically -->
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <span class="nav-label">Discover</span>
+        </a>
+        <a href="for-you.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <span class="nav-label">Favourites</span>
+        </a>
+        <a href="my-events.html" class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2 5c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5zm2 0v14h16V5H4zm8 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm-4-4h8v2H8V9zm0 4h8v2H8v-2z"/>
+            </svg>
+            <span class="nav-label">My Tickets</span>
+        </a>
+        <a href="sell.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+            </svg>
+            <span class="nav-label">Sell</span>
+        </a>
+        <a href="account.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span class="nav-label">My Account</span>
+        </a>
+    </nav>
+
+    <script src="subscription-enforcer.js"></script>
+
+    <script>
+        // Navigation functionality
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Only prevent default for the current page (my-events.html)
+                if (this.href.includes('my-events.html')) {
+                    e.preventDefault();
+                }
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Add this to your existing script
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if running as standalone PWA
+            if (window.navigator.standalone) {
+                document.body.classList.add('standalone-mode');
+            }
+            
+            // Tab switching functionality
+            const tabs = document.querySelectorAll('.tab');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    if (this.textContent.includes('PAST')) {
+                        loadPastEvents();
+                    } else {
+                        loadUpcomingEvents();
+                    }
+                });
+            });
+            
+            // Initialize with upcoming events
+            loadTicketData();
+            loadUpcomingEvents();
+            
+            // Set help button link
+            document.querySelector('.help-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = 'for-you.html';
+            });
+        });
+
+        function loadTicketData() {
+            // Get all events from localStorage
+            const events = JSON.parse(localStorage.getItem('events') || '[]');
+            
+            // Count upcoming and past events
+            const now = new Date();
+            let upcomingCount = 0;
+            let pastCount = 0;
+            
+            events.forEach(event => {
+                const eventDate = getEventDateForComparison(event);
+                const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+                const diffMs = now - eventDate;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                
+                console.log('Event:', event.title);
+                console.log('Event date string:', event.date);
+                console.log('Parsed event date:', eventDate);
+                console.log('Event date year:', eventDate.getFullYear());
+                console.log('Current year:', now.getFullYear());
+                console.log('Is upcoming:', eventDateOnly >= nowDateOnly);
+                
+                // Consider event upcoming if eventDate is today or in future
+                if (eventDateOnly >= nowDateOnly) {
+                    upcomingCount++;
+                } else {
+                    pastCount++;
+                }
+            });
+            
+            // Update counts in tabs
+            document.getElementById('upcomingCount').textContent = upcomingCount;
+            document.getElementById('pastCount').textContent = pastCount;
+        }
+
+        function loadUpcomingEvents() {
+            const container = document.getElementById('eventContainer');
+            container.innerHTML = ''; // Clear container
+            
+            // Get all events from localStorage
+            const events = JSON.parse(localStorage.getItem('events') || '[]');
+            
+            // Filter for upcoming events
+            const now = new Date();
+            const upcomingEvents = events.filter(event => {
+                const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                let eventDate = getEventDateForComparison(event);
+                const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+                const diffMs = now - eventDate;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                // Consider event upcoming if eventDate is today or in future
+                return eventDateOnly >= nowDateOnly;
+            });
+            
+            // Sort by date (closest first)
+            upcomingEvents.sort((a, b) => {
+                const dateA = getEventDateForComparison(a);
+                const dateB = getEventDateForComparison(b);
+                return dateA - dateB;
+            });
+            
+            // Display events or show message if none
+            if (upcomingEvents.length === 0) {
+                container.innerHTML = `
+                    <div class="no-events">
+                        <p>You don't have any upcoming events.</p>
+                        <p>Tap "Help" to create a new event.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create event cards
+            upcomingEvents.forEach(event => {
+                const eventCard = createEventCard(event);
+                container.appendChild(eventCard);
+            });
+        }
+
+        function loadPastEvents() {
+            const container = document.getElementById('eventContainer');
+            container.innerHTML = ''; // Clear container
+            
+            // Get all events from localStorage
+            const events = JSON.parse(localStorage.getItem('events') || '[]');
+            
+            // Filter for past events
+            const now = new Date();
+            const pastEvents = events.filter(event => {
+                const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                let eventDate = getEventDateForComparison(event);
+                const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+                const diffMs = now - eventDate;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                // Consider event past if eventDate is before today
+                return eventDateOnly < nowDateOnly;
+            });
+            
+            // Sort by date (most recent first)
+            pastEvents.sort((a, b) => {
+                const dateA = getEventDateForComparison(a);
+                const dateB = getEventDateForComparison(b);
+                return dateB - dateA;
+            });
+            
+            // Display events or show message if none
+            if (pastEvents.length === 0) {
+                container.innerHTML = `
+                    <div class="no-events">
+                        <p>You don't have any past events.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create event cards
+            pastEvents.forEach(event => {
+                const eventCard = createEventCard(event);
+                container.appendChild(eventCard);
+            });
+        }
+
+        function createEventCard(event) {
+            const card = document.createElement('div');
+            card.className = 'event-card';
+            card.setAttribute('data-event-id', event.id);
+            
+            card.innerHTML = `
+                <div class="event-image" style="background-image: url('${event.imageUrl}'); background-size: cover; background-position: center;"></div>
+                <div class="event-overlay">
+                    <div class="event-title">${event.title}</div>
+                    <div class="event-details">${getDisplayDate(event)} • ${event.venue}</div>
+                    <div class="ticket-count">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="7" width="20" height="10" rx="2" ry="2"></rect>
+                            <path d="M16 3v4"></path>
+                            <path d="M8 3v4"></path>
+                            <path d="M16 17v4"></path>
+                            <path d="M8 17v4"></path>
+                        </svg>
+                        ${event.ticketCount} Tickets
+                    </div>
+                </div>
+            `;
+            
+            // Add click event to navigate to ticket details
+            card.addEventListener('click', function() {
+                // Set this as the active event
+                localStorage.setItem('activeEvent', event.id);
+                
+                // Also set all individual properties for ticket.html to use
+                localStorage.setItem('eventTitle', event.title);
+                localStorage.setItem('eventDate', event.date);
+                localStorage.setItem('eventVenue', event.venue);
+                localStorage.setItem('ticketType', event.ticketType);
+                localStorage.setItem('section', event.section);
+                localStorage.setItem('row', event.row);
+                localStorage.setItem('seat', event.seat);
+                localStorage.setItem('ticketCount', event.ticketCount);
+                localStorage.setItem('seatType', event.seatType);
+                localStorage.setItem('bannerImage', event.imageUrl);
+                localStorage.setItem('ticketPrice', event.ticketPrice || '89.50');
+                
+                // Helper function to validate venue image data
+                function isValidVenueImage(imageData) {
+                    if (!imageData || typeof imageData !== 'string') return false;
+                    if (imageData.length < 100) return false; // Too short to be valid
+                    if (!imageData.startsWith('data:image/')) return false; // Not a data URL
+                    return true;
+                }
+                
+                // Copy venue image data for this specific event with validation
+                if (event.venueImage && isValidVenueImage(event.venueImage)) {
+                    try {
+                        localStorage.setItem('venueImage', event.venueImage);
+                        console.log('Copied valid venue image for event:', event.id, 'Size:', event.venueImage.length, 'chars');
+                    } catch (error) {
+                        console.error('Failed to save venue image to localStorage:', error);
+                        // Clear any corrupted data
+                        localStorage.removeItem('venueImage');
+                    }
+                } else {
+                    console.log('No valid venue image found for event:', event.id);
+                    localStorage.removeItem('venueImage');
+                }
+                
+                if (event.venueLocation) {
+                    localStorage.setItem('venueLocation', event.venueLocation);
+                    console.log('Copied venue location for event:', event.id);
+                }
+                
+                // Also copy venue map data from the complex structure with validation
+                const venueMapDataKey = 'venueMapData';
+                const venueMapData = JSON.parse(localStorage.getItem(venueMapDataKey) || '{}');
+                console.log('Venue map data:', venueMapData);
+                if (venueMapData[event.id]) {
+                    console.log('Found venue map data for event:', event.id, venueMapData[event.id]);
+                    if (venueMapData[event.id].venueImage && isValidVenueImage(venueMapData[event.id].venueImage)) {
+                        try {
+                            localStorage.setItem('venueImage', venueMapData[event.id].venueImage);
+                            console.log('Copied valid venue image from venueMapData for event:', event.id, 'Size:', venueMapData[event.id].venueImage.length, 'chars');
+                        } catch (error) {
+                            console.error('Failed to save venue image from venueMapData:', error);
+                            localStorage.removeItem('venueImage');
+                        }
+                    }
+                    if (venueMapData[event.id].mapLocation) {
+                        localStorage.setItem('venueLocation', venueMapData[event.id].mapLocation);
+                        console.log('Copied venue location from venueMapData for event:', event.id);
+                    }
+                } else {
+                    console.log('No venue map data found for event:', event.id);
+                }
+                
+                // Final validation of venue image data
+                const currentVenueImage = localStorage.getItem('venueImage');
+                if (currentVenueImage && isValidVenueImage(currentVenueImage)) {
+                    console.log('Final venue image validation passed, length:', currentVenueImage.length);
+                } else {
+                    console.log('No valid venue image data in localStorage after copying');
+                    localStorage.removeItem('venueImage');
+                }
+                
+                // Navigate to ticket.html to show the ticket
+                window.location.href = 'ticket.html';
+            });
+            
+            return card;
+        }
+
+        // Helper function to parse event date string
+        function parseEventDate(dateStr) {
+            console.log("Parsing date string:", dateStr);
+            
+            // Try to handle various date formats
+            try {
+                // First, try to parse as ISO date string (from countdownTargetDate)
+                if (dateStr.includes('T') && dateStr.includes('Z')) {
+                    return new Date(dateStr);
+                }
+                
+                // Handle format like "Sat, Nov 22, 2025, 7:00 PM" or "Sat, Nov 22, 7:00 PM"
+                const parts = dateStr.split(',');
+                if (parts.length >= 3) {
+                    const monthDay = parts[1].trim().split(' ');
+                    const month = monthDay[0];
+                    const day = parseInt(monthDay[1]);
+                    
+                    // Check if year is provided in the date string
+                    let year;
+                    let timeStr;
+                    
+                    if (parts.length >= 4 && /^\d{4}$/.test(parts[2].trim())) {
+                        // Year is provided: "Sat, Nov 22, 2025, 7:00 PM"
+                        year = parseInt(parts[2].trim());
+                        timeStr = parts[3].trim();
+                    } else {
+                        // No year provided: "Sat, Nov 22, 7:00 PM" - use current year
+                        year = new Date().getFullYear();
+                        timeStr = parts[2].trim();
+                    }
+                    
+                    const timeParts = timeStr.split(' ');
+                    let time = timeParts[0];
+                    const ampm = timeParts[1];
+                    
+                    // Convert month name to month number
+                    const months = {
+                        'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+                        'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+                    };
+                    
+                    const monthNum = months[month];
+                    
+                    // Parse time
+                    const [hours, minutes] = time.split(':').map(Number);
+                    
+                    // Create date object with the correct year
+                    const eventDate = new Date(year, monthNum, day);
+                    
+                    // Set time
+                    let adjustedHours = hours;
+                    if (ampm === 'PM' && hours < 12) adjustedHours += 12;
+                    if (ampm === 'AM' && hours === 12) adjustedHours = 0;
+                    
+                    eventDate.setHours(adjustedHours, minutes, 0, 0);
+                    
+                    console.log("Parsed date with year:", eventDate, "Year:", year);
+                    return eventDate;
+                }
+                
+                // If all else fails, try standard date parsing
+                return new Date(dateStr);
+            } catch (e) {
+                console.error("Error parsing date:", e);
+                // Return a future date as fallback
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 30); // 30 days in the future
+                return futureDate;
+            }
+        }
+        
+        // NEW: Enhanced function to get parseable date for camping events
+        function getEventDateForComparison(event) {
+            console.log('=== EVENT DATE COMPARISON DEBUG ===');
+            console.log('Event:', event.title);
+            console.log('Is camping event:', event.isCampingEvent);
+            console.log('Has parseable date:', !!event.parseableDate);
+            console.log('Parseable date value:', event.parseableDate);
+            console.log('Display date:', event.date);
+            console.log('Event date:', event.eventDate);
+            
+            // For camping events, use the parseable date if available
+            if (event.isCampingEvent && event.parseableDate) {
+                console.log('Using parseable camping date:', event.parseableDate);
+                // CRITICAL FIX: Parse camping dates without timezone conversion
+                if (event.campingStartDate) {
+                    const parsedDate = parseDateWithoutTimezone(event.campingStartDate);
+                    console.log('Parsed camping start date (local):', parsedDate);
+                    console.log('========================');
+                    return parsedDate;
+                } else if (event.parseableDate && event.parseableDate.includes('-')) {
+                    // Fallback to parseable date if camping dates not available
+                    const parsedDate = parseDateWithoutTimezone(event.parseableDate);
+                    console.log('Parsed camping date (fallback):', parsedDate);
+                    console.log('========================');
+                    return parsedDate;
+                } else {
+                    // Last resort: try to parse the parseable date as a regular date
+                    const parsedDate = new Date(event.parseableDate);
+                    console.log('Parsed camping date (last resort):', parsedDate);
+                    console.log('========================');
+                    return parsedDate;
+                }
+            }
+            
+            // For regular events, use the existing logic
+            if (event.eventDate) {
+                console.log('Using eventDate:', event.eventDate);
+                const parsedDate = new Date(event.eventDate);
+                console.log('Parsed eventDate:', parsedDate);
+                console.log('========================');
+                return parsedDate;
+            }
+            
+            // Fall back to parsing the display date
+            console.log('Falling back to parsing display date:', event.date);
+            const parsedDate = parseEventDate(event.date);
+            console.log('Parsed display date:', parsedDate);
+            console.log('========================');
+            return parsedDate;
+        }
+        
+        // CRITICAL FIX: Parse date strings without timezone conversion
+        function parseDateWithoutTimezone(dateString) {
+            // dateString format: "2025-09-04" (YYYY-MM-DD)
+            const [year, month, day] = dateString.split('-').map(Number);
+            // Create date in local timezone (month is 0-indexed in Date constructor)
+            return new Date(year, month - 1, day);
+        }
+        
+        // NEW: Function to get the display date for camping events with current format preference
+        function getDisplayDate(event) {
+            // If it's a camping event, regenerate the date format using current preference
+            if (event.isCampingEvent && event.campingStartDate && event.campingEndDate) {
+                console.log('=== REGENERATING CAMPING DATE FORMAT ===');
+                console.log('Camping start date:', event.campingStartDate);
+                console.log('Camping end date:', event.campingEndDate);
+                console.log('Camping date format:', event.campingDateFormat);
+                
+                // Get current camping date format preference
+                const currentFormat = localStorage.getItem('preferredCampingDateFormat') || 'short';
+                console.log('Current format preference:', currentFormat);
+                
+                // CRITICAL FIX: Create Date objects without timezone conversion
+                // Parse the date string manually to avoid timezone issues
+                const start = parseDateWithoutTimezone(event.campingStartDate);
+                const end = parseDateWithoutTimezone(event.campingEndDate);
+                
+                console.log('Parsed start date (local):', start);
+                console.log('Parsed end date (local):', end);
+                
+                // Regenerate the date format using current preference
+                let formattedDate = '';
+                if (currentFormat === 'long') {
+                    formattedDate = formatLongCampingDate(start, end);
+                } else if (currentFormat === 'custom' && event.customDateFormat) {
+                    formattedDate = formatCustomCampingDate(start, end);
+                } else {
+                    // Default to short format
+                    formattedDate = formatShortCampingDate(start, end);
+                }
+                
+                console.log('Regenerated camping date format:', formattedDate);
+                console.log('================================');
+                return formattedDate;
+            }
+            
+            // For non-camping events, return the original date
+            return event.date;
+        }
+        
+        // Camping date formatting functions
+        function formatShortCampingDate(start, end) {
+            const startDay = start.toLocaleDateString('en-US', { weekday: 'short' });
+            const startDate = start.getDate();
+            const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+            const endDay = end.toLocaleDateString('en-US', { weekday: 'short' });
+            const endDate = end.getDate();
+            const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+            const year = start.getFullYear();
+            
+            // If same month, show: Fri, 29 Aug - Sun, 31 Aug 2025
+            if (start.getMonth() === end.getMonth()) {
+                return `${startDay}, ${startDate} ${startMonth} - ${endDay}, ${endDate} ${endMonth} ${year}`;
+            } else {
+                // Different months: Fri, 29 Aug - Sun, 31 Sep 2025
+                return `${startDay}, ${startDate} ${startMonth} - ${endDay}, ${endDate} ${endMonth} ${year}`;
+            }
+        }
+        
+        function formatLongCampingDate(start, end) {
+            const startDay = start.toLocaleDateString('en-US', { weekday: 'long' });
+            const startDate = start.getDate();
+            const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
+            const endDay = end.toLocaleDateString('en-US', { weekday: 'long' });
+            const endDate = end.getDate();
+            const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
+            const year = start.getFullYear();
+            
+            if (start.getMonth() === end.getMonth()) {
+                return `${startDay}, ${startMonth} ${startDate} - ${endDay}, ${endMonth} ${endDate}, ${year}`;
+            } else {
+                return `${startDay}, ${startMonth} ${startDate} - ${endDay}, ${endMonth} ${endDate}, ${year}`;
+            }
+        }
+        
+        function formatCustomCampingDate(start, end) {
+            const customFormat = localStorage.getItem('preferredCustomDateFormat') || '';
+            if (!customFormat) return formatShortCampingDate(start, end);
+            
+            const startDay = start.toLocaleDateString('en-US', { weekday: 'short' });
+            const startDate = start.getDate();
+            const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+            const endDay = end.toLocaleDateString('en-US', { weekday: 'short' });
+            const endDate = end.getDate();
+            const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+            const year = start.getFullYear();
+            
+            return customFormat
+                .replace(/{startDay}/g, startDay)
+                .replace(/{startDate}/g, startDate)
+                .replace(/{startMonth}/g, startMonth)
+                .replace(/{endDay}/g, endDay)
+                .replace(/{endDate}/g, endDate)
+                .replace(/{endMonth}/g, endMonth)
+                .replace(/{year}/g, year);
+        }
+        
+        // Prevent pinch zoom
+        document.addEventListener('touchmove', function(event) {
+            if (event.scale !== 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Prevent double-tap zoom
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+    </script>
+
+    <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW registered for scope:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+
+    <script>
+    // Nuclear option: Smarter standalone enforcement
+    if (window.matchMedia('(display-mode: browser)').matches && !sessionStorage.getItem('pwaRedirected')) {
+    sessionStorage.setItem('pwaRedirected', 'true');
+    const intentUrl = `intent://${window.location.host}#Intent;package=com.android.chrome;scheme=https;end`;
+    
+    // Timeout prevents immediate reload loops
+    setTimeout(() => {
+        window.location.href = intentUrl;
+    }, 500);
+    }
+    </script>
+
+    <script>
+    // PROPER Android PWA Touch Handlers
+    (function() {
+    // 1. Save original touch coordinates
+    let startY = 0;
+    
+    // 2. Improved touchmove handler
+    document.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        // Only prevent pinch-zoom, allow scrolling
+        if (e.scale !== 1 && e.touches.length > 1) {
+        e.preventDefault();
+        }
+        
+        // Allow vertical scrolling
+        const y = e.touches[0].clientY;
+        const isVerticalScroll = Math.abs(y - startY) > Math.abs(e.touches[0].clientX - startY);
+        if (isVerticalScroll) {
+        return; // Allow the scroll
+        }
+    }, { passive: false });
+
+    // 3. Safe double-tap prevention
+    let lastTap = 0;
+    document.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+        e.preventDefault();
+        }
+        lastTap = now;
+    }, { passive: false });
+    
+    // 4. Critical for Android PWA
+    document.documentElement.style.touchAction = 'pan-y';
+    })();
+    </script>
+    <script>
+    // Enhanced one-time Android scrolling fix override without affecting header
+    (function() {
+        if (/Android/.test(navigator.userAgent)) {
+            // Add CSS to enforce touch-action pan-y on html, body, and eventContainer only
+            const style = document.createElement('style');
+            style.innerHTML = `
+                html, body {
+                    touch-action: pan-y !important;
+                    -ms-touch-action: pan-y !important;
+                    overflow-y: auto !important;
+                }
+                #eventContainer {
+                    overflow-y: auto !important;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Add capturing touchmove listener to allow pinch zoom prevention but allow scroll
+            document.addEventListener('touchmove', function(e) {
+                if (e.scale !== 1 && e.touches.length > 1) {
+                    e.preventDefault();
+                } else {
+                    e.stopPropagation();
+                }
+            }, { passive: false, capture: true });
+
+            // Force overflow-y auto on body and event container
+            document.body.style.overflowY = 'auto';
+            const eventContainer = document.getElementById('eventContainer');
+            if (eventContainer) {
+                eventContainer.style.overflowY = 'auto';
+            }
+
+            console.log('Enhanced one-time Android scrolling fix applied without affecting header');
+        }
+    })();
+    </script>
+
+    <script>
+    // Load saved events on page load
+    window.onload = function() {
+        const savedEvents = localStorage.getItem('events');
+        if (savedEvents) {
+            const eventsContainer = document.getElementById('events-container');
+            const events = JSON.parse(savedEvents);
+            events.forEach((event) => {
+                const eventElement = document.createElement('div');
+                eventElement.innerHTML = `
+                    <h2>${event.title}</h2>
+                    <p>${event.description}</p>
+                    <p>${event.date}</p>
+                `;
+                eventsContainer.appendChild(eventElement);
+            });
+        }
+    }
+    </script>
+</body>
+</html>

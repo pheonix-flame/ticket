@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticketmaster: Buy Verified Tickets for Concerts, Sports, Theater and Events</title>
+    <link rel="icon" href="assets/icon.png" type="image/png">
+    <link rel="shortcut icon" href="assets/icon.png" type="image/png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        /* Header */
+        .header {
+            background-color: #121212;
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transform: skew(-15deg);
+            text-align: center;
+        }
+
+        .flag-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            position: absolute;
+            right: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: linear-gradient(to bottom, #ff0000 33%, #ffffff 33%, #ffffff 66%, #0000ff 66%);
+        }
+
+        .flag-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .flag-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Country Selection Modal */
+        .country-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+        }
+
+        .country-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .country-modal h3 {
+            margin: 0 0 20px 0;
+            text-align: center;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 16px;
+            max-width: 400px;
+        }
+
+        .country-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .country-option:hover {
+            background-color: #f5f5f5;
+        }
+
+        .country-flag {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #e0e0e0;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .country-flag img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .country-name {
+            font-size: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: 20px 16px;
+            position: relative;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .vip-pass {
+            width: 60px;
+            height: 40px;
+            background: #000;
+            border: 2px solid #ff0000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            position: relative;
+        }
+
+        .vip-pass::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 8px;
+            background: #ff0000;
+        }
+
+        .vip-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .browse-packages-btn {
+            background: #024ddf;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .hero-description {
+            font-size: 14px;
+            color: #ccc;
+            margin-top: 16px;
+        }
+
+        .browse-vip-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Events Section */
+        .events-section {
+            padding: 20px 16px;
+            background: white;
+        }
+
+        .section-title {
+            font-size: 20px;
+      font-weight: 700;
+            margin-bottom: 16px;
+            color: #121212;
+        }
+
+        .events-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .event-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .event-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .event-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+        }
+
+        .event-info {
+            padding: 16px;
+        }
+
+        .event-genre {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .event-title {
+            font-size: 16px;
+      font-weight: 600;
+            color: #121212;
+            margin-bottom: 8px;
+        }
+
+        .event-details {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            text-decoration: none;
+            padding: 8px 12px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: #024ddf;
+        }
+
+        .nav-item:hover {
+            color: #024ddf;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            fill: currentColor;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        /* Main content padding for bottom nav */
+        .main-content {
+            padding-bottom: 80px;
+        }
+
+        /* Comedy Event Wrapper */
+        .event-image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        /* Make image always fill container */
+        .event-image-wrapper .event-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Gradient Overlay */
+        .comedy-overlay {
+            background-color: rgb(2, 77, 223);
+            background-image: linear-gradient(90deg, rgb(70, 117, 232), rgb(2, 77, 223));
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 1;
+            display: block;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.1, 0.85, 0.25, 1);
+            content: "";
+        }
+
+        /* Show overlay on hover */
+        .comedy-card:hover .comedy-overlay {
+            opacity: 0.6;
+        }
+
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .events-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .events-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">ticketmaster®</div>
+        <div class="flag-icon"></div>
+    </header>
+
+    <div class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <div class="vip-pass">VIP</div>
+                <div class="vip-text">MOMENT AS A VIP.</div>
+            </div>
+            <button class="browse-packages-btn">Browse Packages</button>
+            <div class="hero-description">Meet & Greets, Special Access and more</div>
+            <div class="browse-vip-text">Browse Available VIP packages</div>
+        </section>
+
+        <!-- Events Section -->
+        <section class="events-section">
+            <h2 class="section-title">Popular Near You</h2>
+            <div class="events-grid">
+                <!-- Event Card 1 -->
+                <div class="event-card">
+                    <img src="assets/c361b950-449b-4bad-9bf7-374247ee9c11_RETINA_PORTRAIT_3_2.jpg" alt="Brandon Lake" class="event-image">
+                    <div class="event-info">
+                        <div class="event-genre">Rock</div>
+                        <div class="event-title">Brandon Lake</div>
+                        <div class="event-details">Concert • Multiple dates available</div>
+                    </div>
+                </div>
+
+                <!-- Event Card 2 -->
+                <div class="event-card">
+                    <img src="assets/5f4f5fab-6c0a-4fbd-bcfe-fdf7995dcb8c_RETINA_PORTRAIT_3_2.jpg" alt="Fresh Artist" class="event-image">
+                    <div class="event-info">
+                        <div class="event-genre">Hip-Hop</div>
+                        <div class="event-title">Fresh Artist</div>
+                        <div class="event-details">Concert • Limited availability</div>
+                    </div>
+                </div>
+
+                <!-- Event Card 3 -->
+                <!-- Event Card 3 -->
+                <div class="event-card comedy-card">
+                    <div class="event-image-wrapper">
+                        <img src="assets/ComedyGuide_720x405.jpg" alt="Comedy Show" class="event-image">
+                        <div class="comedy-overlay"></div>
+                    </div>
+                    <div class="event-info">
+                        <div class="event-genre">Comedy</div>
+                        <div class="event-title">Comedy Night</div>
+                        <div class="event-details">Comedy Show • Sold out</div>
+                    </div>
+                </div>
+
+
+                <!-- Event Card 4 -->
+                <div class="event-card">
+                    <img src="assets/c361b950-449b-4bad-9bf7-374247ee9c11_RETINA_PORTRAIT_3_2.jpg" alt="Another Event" class="event-image">
+                    <div class="event-info">
+                        <div class="event-genre">Alternative</div>
+                        <div class="event-title">Alternative Band</div>
+                        <div class="event-details">Concert • New dates added</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="home.html" class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <span class="nav-label">Discover</span>
+        </a>
+        <a href="for-you.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <span class="nav-label">Favourites</span>
+        </a>
+        <a href="my-events.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2 5c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5zm2 0v14h16V5H4zm8 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm-4-4h8v2H8V9zm0 4h8v2H8v-2z"/>
+            </svg>
+            <span class="nav-label">My Tickets</span>
+        </a>
+        <a href="sell.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+            </svg>
+            <span class="nav-label">Sell</span>
+        </a>
+        <a href="account.html" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span class="nav-label">My Account</span>
+        </a>
+    </nav>
+
+    <!-- Country Selection Modal -->
+    <div id="countryModal" class="country-modal">
+        <div class="country-modal-content">
+            <button class="close-modal" onclick="closeCountryModal()">&times;</button>
+            <h3>Select Country/Region</h3>
+            <div class="countries-grid">
+                <div class="country-option" onclick="selectCountry('us', '🇺🇸', 'United States')">
+                    <div class="country-flag">🇺🇸</div>
+                    <div class="country-name">United States</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('uk', '🇬🇧', 'United Kingdom')">
+                    <div class="country-flag">🇬🇧</div>
+                    <div class="country-name">United Kingdom</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('ca', '🇨🇦', 'Canada')">
+                    <div class="country-flag">🇨🇦</div>
+                    <div class="country-name">Canada</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('au', '🇦🇺', 'Australia')">
+                    <div class="country-flag">🇦🇺</div>
+                    <div class="country-name">Australia</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('de', '🇩🇪', 'Germany')">
+                    <div class="country-flag">🇩🇪</div>
+                    <div class="country-name">Germany</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('fr', '🇫🇷', 'France')">
+                    <div class="country-flag">🇫🇷</div>
+                    <div class="country-name">France</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('jp', '🇯🇵', 'Japan')">
+                    <div class="country-flag">🇯🇵</div>
+                    <div class="country-name">Japan</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('cn', '🇨🇳', 'China')">
+                    <div class="country-flag">🇨🇳</div>
+                    <div class="country-name">China</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('kr', '🇰🇷', 'South Korea')">
+                    <div class="country-flag">🇰🇷</div>
+                    <div class="country-name">South Korea</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('in', '🇮🇳', 'India')">
+                    <div class="country-flag">🇮🇳</div>
+                    <div class="country-name">India</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('br', '🇧🇷', 'Brazil')">
+                    <div class="country-flag">🇧🇷</div>
+                    <div class="country-name">Brazil</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('mx', '🇲🇽', 'Mexico')">
+                    <div class="country-flag">🇲🇽</div>
+                    <div class="country-name">Mexico</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('it', '🇮🇹', 'Italy')">
+                    <div class="country-flag">🇮🇹</div>
+                    <div class="country-name">Italy</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('es', '🇪🇸', 'Spain')">
+                    <div class="country-flag">🇪🇸</div>
+                    <div class="country-name">Spain</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('nl', '🇳🇱', 'Netherlands')">
+                    <div class="country-flag">🇳🇱</div>
+                    <div class="country-name">Netherlands</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('se', '🇸🇪', 'Sweden')">
+                    <div class="country-flag">🇸🇪</div>
+                    <div class="country-name">Sweden</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('no', '🇳🇴', 'Norway')">
+                    <div class="country-flag">🇳🇴</div>
+                    <div class="country-name">Norway</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('dk', '🇩🇰', 'Denmark')">
+                    <div class="country-flag">🇩🇰</div>
+                    <div class="country-name">Denmark</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('fi', '🇫🇮', 'Finland')">
+                    <div class="country-flag">🇫🇮</div>
+                    <div class="country-name">Finland</div>
+                </div>
+                <div class="country-option" onclick="selectCountry('sg', '🇸🇬', 'Singapore')">
+                    <div class="country-flag">🇸🇬</div>
+                    <div class="country-name">Singapore</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="subscription-enforcer.js"></script>
+
+    <script>
+        // Simple interactivity
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Only prevent default for the current page (home.html)
+                if (this.href.includes('home.html')) {
+                    e.preventDefault();
+                }
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        document.querySelector('.browse-packages-btn').addEventListener('click', function() {
+            alert('Browse VIP Packages feature coming soon!');
+        });
+
+        // Country selection functionality
+        let currentCountry = 'us';
+        let currentFlag = '🇺🇸';
+        let currentCountryName = 'United States';
+
+        document.querySelector('.flag-icon').addEventListener('click', function() {
+            document.getElementById('countryModal').style.display = 'block';
+        });
+
+        function selectCountry(countryCode, flag, countryName) {
+            currentCountry = countryCode;
+            currentFlag = flag;
+            currentCountryName = countryName;
+            
+            // Update the flag icon
+            const flagIcon = document.querySelector('.flag-icon');
+            flagIcon.innerHTML = flag;
+            flagIcon.style.background = 'transparent';
+            flagIcon.style.fontSize = '24px';
+            flagIcon.style.lineHeight = '32px';
+            
+            // Close the modal
+            closeCountryModal();
+            
+            // Show confirmation
+            alert(`Country changed to ${countryName}`);
+        }
+
+        function closeCountryModal() {
+            document.getElementById('countryModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('countryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCountryModal();
+            }
+        });
+    </script>
+</body>
+</html>
