@@ -783,18 +783,19 @@
             localStorage.clear();
             localStorage.setItem('dataVersion', DATA_VERSION);
         }
-        document.getElementById('resetAppBtn').addEventListener('click', async function() {
-            if (confirm('This will clear all app data and reload. Continue?')) {
-                localStorage.clear();
-                localStorage.setItem('dataVersion', DATA_VERSION);
+
+        document.getElementById('resetAppBtn').addEventListener('click', async function () {
+
+            if (confirm('This will reset your tickets only. Continue?')) {
+                localStorage.removeItem('tickets');
+                localStorage.removeItem('activeTicket');
                 window.dispatchEvent(new Event('storageReset'));
-                if ('serviceWorker' in navigator) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    for (const reg of regs) await reg.unregister();
-                }
+                // const regs = await navigator.serviceWorker.getRegistrations();
+                // for (const reg of regs) await reg.unregister();
                 location.reload();
             }
         });
+
         // --- End Versioning and Reset Logic ---
 
         // Navigation functionality

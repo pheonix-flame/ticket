@@ -555,12 +555,39 @@ body {
             closeModal('countryModal');
         }
 
-        function signOut() {
-            alert('You have been signed out');
+        async function signOut() {
+            const username = localStorage.getItem("ticketowner");
+
+            // Call logout API if user exists
+            if (username) {
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'logout',
+                            username: username
+                        })
+                    });
+
+                    const result = await response.json();
+                    console.log("Logout result:", result);
+
+                } catch (err) {
+                    console.error("Logout API error:", err);
+                }
+            }
+
+            // Close modal
             closeModal('signOutModal');
-            // In a real app, you would redirect to login page
-            // window.location.href = '/login';
+
+            // Clear local storage
+            localStorage.clear();
+
+            // Redirect to login
+            window.location.href = "index.html";
         }
+
 
         // iOS PWA specific adjustments
         document.addEventListener('DOMContentLoaded', function() {
