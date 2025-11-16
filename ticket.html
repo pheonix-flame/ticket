@@ -122,7 +122,8 @@
 
           .tabs {
               display: flex;
-              background-color: #1a52ed;
+              /* background-color: #1a52ed; */
+              background-color: black;
               color: white;
               margin-top: 60px;
               /* Add margin to account for fixed header */
@@ -951,6 +952,7 @@
       .view-ticket-container {
         display: inline-flex;
         background-color: #1a52ed;
+        background-color: black;
         justify-content: center;
         align-items: center;
         gap: 10px;
@@ -2430,7 +2432,7 @@
                                   <div class="mobile-entry-text" style="font-size: 18px; font-weight: normal; margin-bottom: 0; color: black;">
                                     ${localStorage.getItem("entryLevel") || "Mobile Entry"}
                                   </div>
-                                  <a href="qr-code.html" class="view-ticket-link">
+                                  <a href="#" class="view-ticket-link">
                                     <div class="view-ticket-container">
                                       <img src="assets/barcode_tm.png" alt="Barcode Icon" class="view-ticket-icon"
                                             style="width: 25px; height: 30px; vertical-align: middle; margin-right: 8px; filter: invert(1);" />
@@ -2692,8 +2694,8 @@
     </div>
 
     <div class="tabs">
-      <div class="active">MY TICKETS (<span id="ticketCount">3</span>)</div>
-      <div>ADD-ONS <span id="addonCount">0</span></div>
+      <div class="active">MY TICKETS </div>
+      <div>ADD-ONS </div>
     </div>
 
     <div class="ticket-container">
