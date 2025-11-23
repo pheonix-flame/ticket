@@ -1,16 +1,33 @@
-// banner-handler.js - Shared functionality for banner image handling
+// banner-handler.js - Shared functionality for banner image handling using active ticket
 
 const isDebug = true; // Set to false in production for reduced logging
 function log(...args) {
     if (isDebug) console.log(...args);
 }
 
+// Get banner image from active ticket
+function getActiveTicketBanner() {
+    const activeTicketId = localStorage.getItem('activeTicket');
+    if (!activeTicketId) return null;
+
+    const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+    const activeTicket = tickets.find(t => t.id === activeTicketId);
+    return activeTicket ? activeTicket.bannerImage : null;
+}
+
 function updateBannerImages() {
-    log("Updating banner images");
-    const bannerImage = localStorage.getItem('bannerImage') || 'https://source.unsplash.com/random/800x450/?concert';
+    log("Updating banner images using active ticket");
+
+    const bannerImage = getActiveTicketBanner();
+    if (!bannerImage) {
+        log("No banner image found for active ticket");
+        return;
+    }
+
     // Include #bannerPreview and #previewBanner for for-you.html
     const ticketImages = document.querySelectorAll('.ticket-image, #bannerPreview, #previewBanner');
     log("Found ticket image elements:", ticketImages.length);
+
     ticketImages.forEach((imageDiv, index) => {
         imageDiv.style.backgroundImage = `url('${bannerImage}')`;
         log(`Updated ticket image ${index + 1} with banner: ${bannerImage}`);
@@ -19,26 +36,30 @@ function updateBannerImages() {
 
 function initBannerHandling() {
     log("Initializing banner handling");
+
     const bannerImageInput = document.getElementById('bannerImage');
     if (bannerImageInput) {
         log("Found banner image input, setting up event listener");
         bannerImageInput.addEventListener('change', handleBannerFileSelect);
-        const savedBannerImage = localStorage.getItem('bannerImage');
+
+        const savedBannerImage = getActiveTicketBanner();
         const bannerPreview = document.getElementById('bannerPreview');
         const previewBanner = document.getElementById('previewBanner');
         if (savedBannerImage && bannerPreview && previewBanner) {
-            log("Found saved banner image, displaying preview");
+            log("Found saved banner image in active ticket, displaying preview");
             bannerPreview.style.backgroundImage = `url('${savedBannerImage}')`;
             previewBanner.style.backgroundImage = `url('${savedBannerImage}')`;
         }
+
         const defaultBannerSelect = document.getElementById('useDefaultBanner');
         if (defaultBannerSelect) {
             defaultBannerSelect.addEventListener('change', handleDefaultBannerSelect);
         }
     }
+
     // Update any ticket images or previews on page load
     if (document.querySelectorAll('.ticket-image, #bannerPreview, #previewBanner').length > 0) {
-        log("Found ticket images or previews, updating with banner");
+        log("Found ticket images or previews, updating with active ticket banner");
         updateBannerImages();
     }
 }
@@ -62,6 +83,7 @@ function handleBannerFileSelect(event) {
             event.target.value = '';
             return;
         }
+
         log("Processing file:", file.name, file.type, file.size);
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -75,8 +97,19 @@ function handleBannerFileSelect(event) {
                 ctx.drawImage(img, 0, 0, 800, 450);
                 try {
                     const compressedData = canvas.toDataURL('image/jpeg', 0.8);
-                    localStorage.setItem('bannerImage', compressedData);
-                    log('Banner image saved to localStorage');
+
+                    // Save banner image to active ticket in localStorage
+                    const activeTicketId = localStorage.getItem('activeTicket');
+                    if (activeTicketId) {
+                        const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+                        const activeTicket = tickets.find(t => t.id === activeTicketId);
+                        if (activeTicket) {
+                            activeTicket.bannerImage = compressedData;
+                            localStorage.setItem('tickets', JSON.stringify(tickets));
+                            log('Banner image saved to active ticket in localStorage');
+                        }
+                    }
+
                     updateBannerImages();
                     const defaultBannerSelect = document.getElementById('useDefaultBanner');
                     if (defaultBannerSelect) defaultBannerSelect.value = '';
@@ -102,21 +135,26 @@ function handleDefaultBannerSelect() {
     const defaultBannerSelect = document.getElementById('useDefaultBanner');
     if (!defaultBannerSelect || !defaultBannerSelect.value) return;
     log("Default banner selected:", defaultBannerSelect.value);
-    try {
-        localStorage.setItem('bannerImage', defaultBannerSelect.value);
-        log('Default banner saved to localStorage');
-        updateBannerImages();
-        const bannerImageInput = document.getElementById('bannerImage');
-        if (bannerImageInput) bannerImageInput.value = '';
-    } catch (error) {
-        log("Failed to save default banner:", error);
-        alert('Error saving default image: Storage limit reached.');
+
+    // Save to active ticket only
+    const activeTicketId = localStorage.getItem('activeTicket');
+    if (activeTicketId) {
+        const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+        const activeTicket = tickets.find(t => t.id === activeTicketId);
+        if (activeTicket) {
+            activeTicket.bannerImage = defaultBannerSelect.value;
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+            log('Default banner saved to active ticket');
+            updateBannerImages();
+            const bannerImageInput = document.getElementById('bannerImage');
+            if (bannerImageInput) bannerImageInput.value = '';
+        }
     }
 }
 
 window.addEventListener('storage', function(e) {
-    if (e.key === 'bannerImage') {
-        log("Banner image changed in storage, updating");
+    if (e.key === 'tickets') {
+        log("Tickets changed in storage, updating banner images");
         updateBannerImages();
     }
 });
@@ -127,8 +165,16 @@ window.addEventListener('focus', () => {
 });
 
 window.addEventListener('storageReset', () => {
-    log("Storage reset detected, reinitializing banner");
-    localStorage.removeItem('bannerImage');
+    log("Storage reset detected, removing active ticket banner");
+    const activeTicketId = localStorage.getItem('activeTicket');
+    if (activeTicketId) {
+        const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+        const activeTicket = tickets.find(t => t.id === activeTicketId);
+        if (activeTicket) {
+            activeTicket.bannerImage = null;
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+        }
+    }
     updateBannerImages();
 });
 
