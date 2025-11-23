@@ -7,8 +7,7 @@
     <meta name="theme-color" content="#026CDF">
     <link rel="icon" href="assets/android-launchericon-192-192.png" type="image/png">
     <title>User Login</title>
-    <!-- REQUIRED: Include the jQuery library -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
         /* Base Styling */
         html, body {
@@ -16,14 +15,44 @@
             height: 100%;
             margin: 0;
             font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #e8eaf6; 
+            background-color: #026CDF; 
         }
+
+        .show-login-bg {
+            background-color: #e8eaf6 !important;
+        }
+
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
         }
+
+        #splash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #026CDF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #splash-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #splash-logo {
+            width: 150px;
+            height: 150px;
+        }
+
         .login-container {
             width: 100%;
             max-width: 400px;
@@ -31,10 +60,19 @@
             padding: 30px;
             border-radius: 16px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            visibility: hidden; 
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
         }
+
+        .login-container.visible {
+            visibility: visible;
+            opacity: 1;
+        }
+
         h2 {
             text-align: center;
-            color: #3f51b5; 
+            color: #3f51b5;
             margin-bottom: 30px;
             font-size: 2em;
         }
@@ -45,7 +83,7 @@
             display: block;
             margin-bottom: 8px;
             font-size: 0.9em;
-            color: #673ab7; 
+            color: #673ab7;
             font-weight: 500;
         }
         input {
@@ -54,7 +92,7 @@
             border: 1px solid #c5cae9;
             border-radius: 8px;
             box-sizing: border-box;
-            font-size: 16px; 
+            font-size: 16px;
             transition: border-color 0.3s;
         }
         input:focus {
@@ -64,7 +102,7 @@
         button {
             width: 100%;
             padding: 14px;
-            background-color: #3f51b5; 
+            background-color: #3f51b5;
             color: white;
             border: none;
             border-radius: 10px;
@@ -99,19 +137,22 @@
     </style>
 </head>
 <body>
+    <div id="splash-overlay">
+        <img id="splash-logo" src="assets/android-launchericon-512-512.png" alt="App Logo">
+    </div>
     <div class="login-container">
         <h2>Member Access</h2>
         
         <form id="loginForm">
             <div class="input-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" required 
+                <input type="text" id="username" name="username" required
                        placeholder="Enter your username">
             </div>
             
             <div class="input-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required 
+                <input type="password" id="password" name="password" required
                        placeholder="Enter your password">
             </div>
 
@@ -122,7 +163,7 @@
 
         <div style="text-align:center; margin-top:18px; font-size:0.9em; color:#555;">
             Need more apps? Contact support:<br>
-            <a href="https://t.me/HeisenbergIsAlive" 
+            <a href="https://t.me/HeisenbergIsAlive"
             style="color:#3f51b5; font-weight:600; text-decoration:none;">
                 @HeisenbergIsAlive
             </a> on TG.
@@ -139,44 +180,38 @@
         });
         }
 
-        // --- Configuration ---
-        // 🚨 IMPORTANT: This now points to the local proxy endpoint! 🚨
-        const SCRIPT_URL = '/api/login'; 
-        const HOME_PAGE_URL = 'home.html'; 
+        const SCRIPT_URL = '/api/login';
+        const HOME_PAGE_URL = 'home.html';
         const TICKET_OWNER_KEY = 'ticketowner';
 
-        // --- DOM Elements (using jQuery selectors) ---
         const $form = $('#loginForm');
         const $messageBox = $('#messageBox');
         const $loginButton = $('#loginButton');
 
-        // --- Utility Functions ---
         function showMessage(text, type = 'success') {
             $messageBox.text(text).removeClass('success error').addClass(type).show();
         }
         
-        // --- Main Login Function ---
         function handleLogin(username, password) {
             $loginButton.prop('disabled', true).text('Authenticating...');
             $messageBox.hide();
 
-            // Prepare the payload
             const payload = { action: 'login', username: username, password: password };
 
-            console.log('--- PROXY REQUEST ---');
-            console.log('Target Local Endpoint:', SCRIPT_URL);
-            console.log('Payload being sent:', payload);
+            // console.log('--- PROXY REQUEST ---');
+            // console.log('Target Local Endpoint:', SCRIPT_URL);
+            // console.log('Payload being sent:', payload);
             
             $.ajax({
                 url: SCRIPT_URL,
                 type: 'POST',
                 data: JSON.stringify(payload),
                 contentType: 'application/json',
-                dataType: 'json', 
+                dataType: 'json',
                 
                 success: function(result) {
-                    console.log('--- RESPONSE FROM PROXY ---');
-                    console.log(result);
+                    // console.log('--- RESPONSE FROM PROXY ---');
+                    // console.log(result);
                     
                     if (result.success) {
                         showMessage('Login successful. Redirecting...', 'success');
@@ -193,8 +228,7 @@
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.error('AJAX Proxy Error:', textStatus, errorThrown);
-                    // If the proxy fails to connect to Apps Script or the proxy itself throws an error.
-                    showMessage(`Could not connect to the proxy server or Apps Script. Check your Vercel CLI console for errors.`, 'error');
+                    showMessage(`Could not connect to server`, 'error');
                 },
                 complete: function() {
                     $loginButton.prop('disabled', false).text('Login');
@@ -202,7 +236,6 @@
             });
         }
 
-        // --- Event Listener ---
         $form.on('submit', function(e) {
             e.preventDefault();
             const username = $('#username').val().trim();
@@ -211,16 +244,26 @@
         });
 
 
-        
-        
-        // --- Auto-Redirect if already logged in ---
         $(document).ready(function() {
+            const $splashOverlay = $('#splash-overlay');
+            const $loginContainer = $('.login-container');
             const savedUsername = localStorage.getItem(TICKET_OWNER_KEY);
+
             if (savedUsername) {
                 showMessage(`Welcome back, ${savedUsername}. Redirecting...`, 'success');
+                
                 setTimeout(() => {
                     window.location.href = HOME_PAGE_URL;
                 }, 500);
+
+            } else {
+                
+                setTimeout(() => {
+                    $('body').addClass('show-login-bg');                     
+                    $splashOverlay.addClass('hidden');                    
+                    $loginContainer.addClass('visible');
+
+                }, 800);
             }
         });
     </script>
