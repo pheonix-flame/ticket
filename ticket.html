@@ -2181,282 +2181,157 @@
       });
 
       function generateTicketSlides() {
-        // Get active ticket
-        var ticket = getActiveTicket();
-        if (!ticket) {
-            console.error("No active ticket found.");
+        // Get the active ticket ID from localStorage
+        const activeTicketId = localStorage.getItem("activeTicket");
+        if (!activeTicketId) {
+            console.error("No active ticket ID found.");
             return;
         }
 
-        // Use ticketCount from ticket object
+        // Get all tickets from localStorage
+        const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        // Find the ticket by ID
+        const ticket = tickets.find(t => t.id === activeTicketId);
+        if (!ticket) {
+            console.error("Active ticket not found in localStorage tickets.");
+            return;
+        }
+
         const ticketCount = parseInt(ticket.ticketCount) || 1;
         console.log("Ticket count from ticket object:", ticketCount);
 
         const ticketWrapper = document.getElementById("ticketWrapper");
+        if (!ticketWrapper) return;
 
-        // Clear existing content
-        if (ticketWrapper) {
-          ticketWrapper.innerHTML = "";
-        }
+        // Clear existing slides
+        ticketWrapper.innerHTML = "";
 
-        // Get ticket data from localStorage
-        var ticket = getActiveTicket();
-        if (!ticket) {
-          console.error("No active ticket found.");
-          return;
-        }
-
-          const ticketType = ticket.ticketType || "General Sale";
-          const seatType = ticket.seatType || "General Admission";
-          const section = ticket.section || "GAFLR";
-          const row = ticket.row || "22";
-          const seatStart = parseInt(ticket.seat || "1");
-          const eventTitle = ticket.title || "Untitled Event";
-          let eventDate = ticket.date || ticket.eventDate || "Unknown Date";
-          const eventVenue = ticket.venue || "Unknown Venue";
-          // const imageToUse = ticket.bannerImage || "https://source.unsplash.com/random/800x450/?concert";
-          const countdownTargetDate = ticket.countdownTargetDate 
+        // Pull ticket-specific data
+        const ticketType = ticket.ticketType || "General Sale";
+        const seatType = ticket.seatType || "General Admission";
+        const section = ticket.section || "GAFLR";
+        const row = ticket.row || "22";
+        const seatStart = parseInt(ticket.seat || "1");
+        const eventTitle = ticket.title || "Untitled Event";
+        let eventDate = ticket.date || ticket.eventDate || "Unknown Date";
+        const eventVenue = ticket.venue || "Unknown Venue";
+        const showCountdown = ticket.showCountdown !== false; // default true
+        const countdownTargetDate = ticket.countdownTargetDate 
             ? new Date(ticket.countdownTargetDate).toISOString()
             : new Date(eventDate).toISOString();
-          const showCountdown = ticket.showCountdown !== false; // default true if not set
+        
+        const imageToUse = ticket.bannerImage || "https://source.unsplash.com/random/800x450/?concert";
 
-
-        // CRITICAL FIX: Handle camping dates properly
-        // Check if current event is a camping event and use the appropriate date
-        const currentActiveEventId = localStorage.getItem("activeEvent");
-        if (currentActiveEventId) {
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          const activeEvent = events.find(
-            (event) => event.id === currentActiveEventId
-          );
-          if (activeEvent && activeEvent.isCampingEvent) {
-            console.log(
-              "Active event is a camping event, using camping date format"
-            );
-            // For camping events, regenerate the date format using current preference
-            if (activeEvent.campingStartDate && activeEvent.campingEndDate) {
-              eventDate = getDisplayDateForCamping(activeEvent);
-              console.log("Regenerated camping event date:", eventDate);
-            } else if (activeEvent.date) {
-              eventDate = activeEvent.date;
-              console.log("Using fallback camping event date:", eventDate);
-            }
-          }
-        }
-
-        // Get countdown target date to determine the correct year for event date
-        let countdownTargetDateForYear = null;
-        if (currentActiveEventId) {
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          const activeEvent = events.find(
-            (event) => event.id === currentActiveEventId
-          );
-          if (activeEvent && activeEvent.countdownTargetDate) {
-            countdownTargetDateForYear = activeEvent.countdownTargetDate;
-          }
-        }
-        if (!countdownTargetDateForYear) {
-          countdownTargetDateForYear = localStorage.getItem(
-            "countdownTargetDate"
-          );
-        }
-
-        // Ensure the date includes the correct year from countdown target date
+        // Ensure eventDate has a year if missing
         if (!/\b\d{4}\b/.test(eventDate)) {
-          // If no 4-digit year, use year from countdown target date or current year
-          let targetYear = new Date().getFullYear(); // Default to current year
-          if (countdownTargetDateForYear) {
-            const targetDate = new Date(countdownTargetDateForYear);
-            if (!isNaN(targetDate.getTime())) {
-              targetYear = targetDate.getFullYear();
-              console.log(
-                "Using year from countdown target date for event display:",
-                targetYear
-              );
+            const targetYear = new Date(countdownTargetDate).getFullYear();
+            const dateParts = eventDate.split(",");
+            if (dateParts.length >= 2) {
+                eventDate = `${dateParts[0]},${dateParts[1]}, ${targetYear},${dateParts.slice(2).join(",")}`;
+            } else {
+                eventDate = `${eventDate}, ${targetYear}`;
             }
-          }
-
-          // Insert year after month and day if possible
-          const dateParts = eventDate.split(",");
-          if (dateParts.length >= 2) {
-            eventDate = `${dateParts[0]},${
-              dateParts[1]
-            }, ${targetYear},${dateParts.slice(2).join(",")}`;
-          } else {
-            eventDate = `${eventDate}, ${targetYear}`;
-          }
         }
-
-        // Get banner image from localStorage, with fallback
-        const bannerImage = localStorage.getItem("bannerImage");
-        const defaultImage =
-          "https://source.unsplash.com/random/800x450/?concert";
-
-        // Check for event-specific banner image
-        let imageToUse = defaultImage;
-        if (currentActiveEventId) {
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          const activeEvent = events.find(
-            (event) => event.id === currentActiveEventId
-          );
-          if (activeEvent && activeEvent.bannerImage) {
-            imageToUse = activeEvent.bannerImage;
-            console.log(
-              "Using event-specific banner image:",
-              activeEvent.bannerImage
-            );
-          } else if (bannerImage) {
-            imageToUse = bannerImage;
-            console.log("Using global banner image:", bannerImage);
-          }
-        } else if (bannerImage) {
-          imageToUse = bannerImage;
-          console.log("Using global banner image:", bannerImage);
-        }
-
-        console.log("Final image to use:", imageToUse);
 
         // Create ticket slides
         for (let i = 0; i < ticketCount; i++) {
-          const slide = document.createElement("div");
-          slide.className = "swiper-slide";
+            const slide = document.createElement("div");
+            slide.className = "swiper-slide";
 
-          // Calculate seat number
-          const seat = seatStart + i;
+            // Calculate seat number
+            const seat = seatStart + i;
 
-          // Get events array from localStorage
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          // Find active event by id
-          let countdownTargetDate = null;
-          if (currentActiveEventId) {
-            const activeEvent = events.find(
-              (event) => event.id === currentActiveEventId
-            );
-            if (activeEvent && activeEvent.countdownTargetDate) {
-              countdownTargetDate = activeEvent.countdownTargetDate;
-              console.log(
-                "Using countdown target date from active event:",
-                countdownTargetDate
-              );
-            }
-          }
-          // If no active event or countdownTargetDate, try to get from localStorage
-          if (!countdownTargetDate) {
-            const globalCountdownTargetDate = localStorage.getItem(
-              "countdownTargetDate"
-            );
-            if (globalCountdownTargetDate) {
-              countdownTargetDate = globalCountdownTargetDate;
-              console.log(
-                "Using global countdown target date:",
-                countdownTargetDate
-              );
-            } else {
-              // Last resort: fallback to eventDate
-              countdownTargetDate = new Date(eventDate).toISOString();
-              console.log(
-                "Using event date as countdown target date:",
-                countdownTargetDate
-              );
-            }
-          }
-          console.log("show countdown", showCountdown);
-          // Determine seat info HTML
-          let seatInfoHTML = "";
-          if (seatType === "General Admission") {
-            seatInfoHTML = `
-                        <div class="seat-info-ga" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                            <div class="seat-column-ga" style="display: flex; flex-direction: column; align-items: center;">
-                                <div class="seat-label" style="margin-bottom: 2px;">SEC</div>
-                                <div class="seat-value">${section}</div>
-                            </div>
-                            <div class="general-admission-text" style="margin-left: auto; margin-right: 20px;">General Admission</div>
+            // Determine seat info HTML
+            let seatInfoHTML = "";
+            if (seatType === "General Admission") {
+                seatInfoHTML = `
+                    <div class="seat-info-ga" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <div class="seat-column-ga" style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="seat-label" style="margin-bottom: 2px;">SEC</div>
+                            <div class="seat-value">${section}</div>
                         </div>
-                    `;
-          } else {
-            seatInfoHTML = `
-                        <div class="seat-info-container">
-                            <div class="seat-column">
-                                <div class="seat-label">SEC</div>
-                                <div class="seat-value">${section}</div>
-                            </div>
-                            <div class="seat-column">
-                                <div class="seat-label">ROW</div>
-                                <div class="seat-value">${row}</div>
-                            </div>
-                            <div class="seat-column">
-                                <div class="seat-label">SEAT</div>
-                                <div class="seat-value">${seat}</div>
-                            </div>
-                        </div>
-                    `;
-          }
-
-          slide.innerHTML = `
-                    <div class="ticket-card" style="position: relative;" id='ticketCard'>
-                        <div class="tm-icon"></div>
-                        <div class="ticket-header">
-                            <div class="ticket-type-label">${ticketType}</div>
-                            ${seatInfoHTML}
-                        </div>
-                        <div class="ticket-image" style="background-image: url('${imageToUse}')">
-                            <div class="ticket-image-overlay">
-                                <div class="event-title">${eventTitle}</div>
-                                <div class="event-details">${eventDate} • ${eventVenue}</div>
-                            </div>
-                        </div>
-                        ${
-                          showCountdown
-                            ? `<div class="countdown" data-target-date="${countdownTargetDate}">
-                                <div class="countdown-label">Ticket will be ready in:</div>
-                                <div class="countdown-timer">
-                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">DAY</div></div>
-                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">HOUR</div></div>
-                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">MIN</div></div>
-                                    <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">SECONDS</div></div>
-                                </div>
-                              </div>`
-                            : `<div class="countdown" data-target-date="${countdownTargetDate}">
-                                <div class="mobile-entry-container">
-                                  <div class="mobile-entry-text" style="font-size: 18px; font-weight: normal; margin-bottom: 0; color: black;">
-                                    ${localStorage.getItem("entryLevel") || "Mobile Entry"}
-                                  </div>
-                                  <a href="#" class="view-ticket-link">
-                                    <div class="view-ticket-container">
-                                      <img src="assets/barcode_tm.png" alt="Barcode Icon" class="view-ticket-icon"
-                                            style="width: 25px; height: 30px; vertical-align: middle; margin-right: 8px; filter: invert(1);" />
-                                      <span class="view-ticket-text">View Ticket</span>
-                                    </div>
-                                  </a>
-                                </div>
-                              </div>`
-                        }
-
-                        <a href="ticket-details.html" class="ticket-details-link">Ticket Details</a>
-                        <div class="ticket-card-underline"></div>
+                        <div class="general-admission-text" style="margin-left: auto; margin-right: 20px;">General Admission</div>
                     </div>
                 `;
+            } else {
+                seatInfoHTML = `
+                    <div class="seat-info-container">
+                        <div class="seat-column">
+                            <div class="seat-label">SEC</div>
+                            <div class="seat-value">${section}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="seat-label">ROW</div>
+                            <div class="seat-value">${row}</div>
+                        </div>
+                        <div class="seat-column">
+                            <div class="seat-label">SEAT</div>
+                            <div class="seat-value">${seat}</div>
+                        </div>
+                    </div>
+                `;
+            }
 
-          // Add slide to wrapper
-          if (ticketWrapper) {
+            slide.innerHTML = `
+                <div class="ticket-card" style="position: relative;" id='ticketCard'>
+                    <div class="tm-icon"></div>
+                    <div class="ticket-header">
+                        <div class="ticket-type-label">${ticketType}</div>
+                        ${seatInfoHTML}
+                    </div>
+                    <div class="ticket-image" style="background-image: url('${imageToUse}')">
+                        <div class="ticket-image-overlay">
+                            <div class="event-title">${eventTitle}</div>
+                            <div class="event-details">${eventDate} • ${eventVenue}</div>
+                        </div>
+                    </div>
+                    ${
+                      showCountdown
+                        ? `<div class="countdown" data-target-date="${countdownTargetDate}">
+                            <div class="countdown-label">Ticket will be ready in:</div>
+                            <div class="countdown-timer">
+                                <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">DAY</div></div>
+                                <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">HOUR</div></div>
+                                <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">MIN</div></div>
+                                <div class="timer-unit"><div class="timer-value">00</div><div class="timer-label">SECONDS</div></div>
+                            </div>
+                          </div>`
+                        : `<div class="countdown" data-target-date="${countdownTargetDate}">
+                            <div class="mobile-entry-container">
+                                <div class="mobile-entry-text" style="font-size: 18px; font-weight: normal; margin-bottom: 0; color: black;">
+                                    ${ticket.entryLevel || "Mobile Entry"}
+                                </div>
+                                <a href="#" class="view-ticket-link">
+                                    <div class="view-ticket-container">
+                                        <img src="assets/barcode_tm.png" alt="Barcode Icon" class="view-ticket-icon"
+                                            style="width: 25px; height: 30px; vertical-align: middle; margin-right: 8px; filter: invert(1);" />
+                                        <span class="view-ticket-text">View Ticket</span>
+                                    </div>
+                                </a>
+                            </div>
+                          </div>`
+                    }
+                    <a href="ticket-details.html" class="ticket-details-link">Ticket Details</a>
+                    <div class="ticket-card-underline"></div>
+                </div>
+            `;
+
             ticketWrapper.appendChild(slide);
-          }
         }
 
         // Update pagination dots
         updatePaginationDots(ticketCount);
 
-        // Start the countdown timer after slides are created
+        // Start countdown timers
         refreshAllCountdowns();
 
         // Force update banner images after a short delay
-        setTimeout(function () {
-          updateBannerImages();
-        }, 100);
+        setTimeout(updateBannerImages, 100);
 
-        // Update ticket count in tab - FIXED FORMAT
+        // Update ticket count in UI
         document.getElementById("ticketCount").textContent = ticketCount;
-      }
+    }
+
 
       function updatePaginationDots(ticketCount) {
         const pagination = document.querySelector(".pagination");
