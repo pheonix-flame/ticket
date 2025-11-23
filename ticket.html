@@ -553,20 +553,24 @@
           .pagination {
               display: flex;
               justify-content: center;
-              padding: 10px;
+              margin-top: 10px;
+              gap: 6px;
           }
 
           .pagination-dot {
-              width: 8px;
-              height: 8px;
+              width: 7px;
+              height: 7px;
               border-radius: 50%;
-              background-color: #ccc;
-              margin: 0 5px;
+              background-color: #d5d5d5;
+              transition: all 0.25s ease;
           }
 
           .pagination-dot.active {
-              background-color: #666;
+              width: 22px;
+              border-radius: 5px;
+              background-color: black;
           }
+
 
           /* Add these styles to your existing CSS */
           .swiper-container {
@@ -2051,93 +2055,67 @@
         const pagination = document.querySelector(".pagination");
         if (!pagination) return;
 
-        // Clear existing dots
         pagination.innerHTML = "";
 
-        // Only show one dot/line for the current slide
-        const dot = document.createElement("div");
-        dot.className = "pagination-dot active";
-        pagination.appendChild(dot);
-      }
+        for (let i = 0; i < ticketCount; i++) {
+            const dot = document.createElement("div");
+            dot.className = "pagination-dot";
+            if (i === 0) dot.classList.add("active");
+            pagination.appendChild(dot);
+        }
+    }
+
 
       function initSwiper() {
-        // Destroy existing Swiper instance if it exists
         if (window.swiperInstance) {
-          window.swiperInstance.destroy(true, true);
+            window.swiperInstance.destroy(true, true);
         }
 
-        // Wait a bit to ensure DOM is ready
         setTimeout(() => {
-          try {
-            const swiperContainer = document.querySelector(".swiper-container");
-            if (!swiperContainer) {
-              console.error("Swiper container not found");
-              return;
-            }
+            try {
+                const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+                const activeTicketId = localStorage.getItem("activeTicket");
+                const ticket = tickets.find(t => t.id === activeTicketId);
 
-            const swiper = new Swiper(".swiper-container", {
-              slidesPerView: 1,
-              spaceBetween: 0,
-              speed: 400,
-              centeredSlides: true,
-              direction: "horizontal",
-              observer: true, // Enable observer to watch for DOM changes
-              observeParents: true, // Watch parent elements for changes
-              on: {
-                slideChange: function () {
-                  // Update pagination dots
-                  const dots = document.querySelectorAll(".pagination-dot");
-                  dots.forEach((dot, index) => {
-                    if (index === this.activeIndex) {
-                      dot.classList.add("active");
-                    } else {
-                      dot.classList.remove("active");
+                if (!ticket) return;
+                const ticketCount = parseInt(ticket.ticketCount) || 1;
+
+                updatePaginationDots(ticketCount);
+
+                const swiper = new Swiper(".swiper-container", {
+                    slidesPerView: 1,
+                    centeredSlides: true,
+                    spaceBetween: 20,
+                    speed: 350,
+                    threshold: 10,
+                    resistanceRatio: 0.4,
+
+                    on: {
+                        slideChange() {
+                            const dots = document.querySelectorAll(".pagination-dot");
+                            dots.forEach((dot, index) => {
+                                dot.classList.toggle("active", index === this.activeIndex);
+                            });
+                            refreshAllCountdowns();
+                        }
                     }
-                  });
-                  // Refresh countdown timers on slide change
-                  refreshAllCountdowns();
-                },
-                slideChangeTransitionEnd: function () {
-                  // Additional refresh after transition ends to ensure all slides updated
-                  refreshAllCountdowns();
-                },
-              },
-            });
+                });
 
-            // Store the Swiper instance globally
-            window.swiperInstance = swiper;
+                window.swiperInstance = swiper;
 
-            // Make pagination dots clickable
-            const dots = document.querySelectorAll(".pagination-dot");
-            dots.forEach((dot, index) => {
-              dot.addEventListener("click", function () {
-                swiper.slideTo(index);
-              });
-            });
+                document.querySelectorAll(".pagination-dot").forEach((dot, i) => {
+                    dot.addEventListener("click", () => swiper.slideTo(i));
+                });
 
-            // Update ticket count in tab
-            // Get active ticket
-            var ticket = getActiveTicket();
-            if (!ticket) {
-                console.error("No active ticket found.");
-                return;
+                const tab = document.querySelector(".tabs .active");
+                if (tab) tab.textContent = `MY TICKETS ${ticketCount}`;
+
+            } catch (error) {
+                console.error("Error initializing Swiper:", error);
             }
-
-            // Use ticketCount from ticket object
-            const ticketCount = parseInt(ticket.ticketCount) || 1;
-            console.log("Ticket count from ticket object:", ticketCount);
-
-            const ticketsTab = document.querySelector(".tabs .active");
-            if (ticketsTab) {
-              ticketsTab.textContent = `MY TICKETS ${ticketCount}`;
-            }
-
-            console.log("Swiper initialized successfully");
-          } catch (error) {
-            console.error("Error initializing Swiper:", error);
-          }
         }, 100);
-      }
+    }
+
 
       // CRITICAL FIX: Function to get the display date for camping events with current format preference
       function getDisplayDateForCamping(event) {
