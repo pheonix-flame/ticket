@@ -1664,22 +1664,27 @@
         refreshAllCountdowns();
 
         // Update ticket count with proper format
-        const ticketCount = parseInt(
-          localStorage.getItem("ticketCount") || "3"
-        );
+        const ticket = getActiveTicket();
+        if (!ticket) {
+            console.error("No active ticket found.");
+            return;
+        }
+
+        const ticketCount = parseInt(ticket.ticketCount) || 1;
         document.getElementById("ticketCount").textContent = ticketCount;
 
-        // Count enabled add-ons
-        let addonCount = parseInt(localStorage.getItem("addonCount") || "0");
-        if (!localStorage.getItem("addonCount")) {
-          // Fallback calculation if addonCount isn't set
-          addonCount = 0;
-          if (localStorage.getItem("vipEarlyEntry") === "true") addonCount++;
-          if (localStorage.getItem("merchPackage") === "true") addonCount++;
-          if (localStorage.getItem("premiumParking") === "true") addonCount++;
-          localStorage.setItem("addonCount", addonCount.toString());
+        let addonCount = 0;
+
+        if (Array.isArray(ticket.addons)) {
+            addonCount = ticket.addons.length;
         }
+
+        if (ticket.vipEarlyEntry === true) addonCount++;
+        if (ticket.merchPackage === true) addonCount++;
+        if (ticket.premiumParking === true) addonCount++;
+
         document.getElementById("addonCount").textContent = addonCount;
+
 
         // Update map and banner images
         updateMapFromEvent();
@@ -2200,9 +2205,17 @@
       });
 
       function generateTicketSlides() {
-        const ticketCount = parseInt(
-          localStorage.getItem("ticketCount") || "3"
-        );
+        // Get active ticket
+        var ticket = getActiveTicket();
+        if (!ticket) {
+            console.error("No active ticket found.");
+            return;
+        }
+
+        // Use ticketCount from ticket object
+        const ticketCount = parseInt(ticket.ticketCount) || 1;
+        console.log("Ticket count from ticket object:", ticketCount);
+
         const ticketWrapper = document.getElementById("ticketWrapper");
 
         // Clear existing content
@@ -2538,9 +2551,17 @@
             });
 
             // Update ticket count in tab
-            const ticketCount = parseInt(
-              localStorage.getItem("ticketCount") || "3"
-            );
+            // Get active ticket
+            var ticket = getActiveTicket();
+            if (!ticket) {
+                console.error("No active ticket found.");
+                return;
+            }
+
+            // Use ticketCount from ticket object
+            const ticketCount = parseInt(ticket.ticketCount) || 1;
+            console.log("Ticket count from ticket object:", ticketCount);
+
             const ticketsTab = document.querySelector(".tabs .active");
             if (ticketsTab) {
               ticketsTab.textContent = `MY TICKETS ${ticketCount}`;
@@ -2993,13 +3014,18 @@
 
       function openTransferModal() {
         // Get ticket data from localStorage
-        const section = localStorage.getItem("section") || "121";
-        const row = localStorage.getItem("row") || "4";
-        const seatStart = parseInt(localStorage.getItem("seat") || "13");
-        const ticketCount = parseInt(
-          localStorage.getItem("ticketCount") || "3"
-        );
-        const seatType = localStorage.getItem("seatType") || "Reserved Seating";
+        const ticket = getActiveTicket();
+        if (!ticket) {
+            console.error("No active ticket found.");
+            return;
+        }
+
+        const section    = ticket.section || "121";
+        const row        = ticket.row || "4";
+        const seatStart  = parseInt(ticket.seat || "13");          // starting seat
+        const ticketCount = parseInt(ticket.ticketCount || 1);     // number of tickets
+        const seatType   = ticket.seatType || "Reserved Seating";
+
 
         // Update section and row display
         document.getElementById(
