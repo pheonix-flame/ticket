@@ -1281,49 +1281,25 @@
 
       // Load active event from localStorage
       document.addEventListener("DOMContentLoaded", function () {
-        const activeEventId = localStorage.getItem("activeEvent");
-        if (activeEventId) {
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          const activeEvent = events.find(
-            (event) => event.id === activeEventId
-          );
+          const activeTicketId = localStorage.getItem("activeTicket");
+          if (!activeTicketId) return;
 
-          if (activeEvent) {
-            // Update ticket details with active event data
-            document.querySelector(".ticket-title").textContent =
-              activeEvent.title;
-            // Ensure the date includes a year
-            let dateStr = activeEvent.date;
-            if (!/\b\d{4}\b/.test(dateStr)) {
-              // If no 4-digit year, append current year
-              const now = new Date();
-              // Insert year after month and day if possible
-              const dateParts = dateStr.split(",");
-              if (dateParts.length >= 2) {
-                dateStr = `${dateParts[0]},${
-                  dateParts[1]
-                }, ${now.getFullYear()},${dateParts.slice(2).join(",")}`;
-              } else {
-                dateStr = `${dateStr}, ${now.getFullYear()}`;
-              }
-            }
-            document.querySelector(".ticket-date").textContent = dateStr;
-            document.querySelector(".ticket-venue").textContent =
-              activeEvent.venue;
-            document.querySelector(
-              ".ticket-image"
-            ).style.backgroundImage = `url('${activeEvent.imageUrl}')`;
-            document.querySelector(".ticket-type").textContent =
-              activeEvent.ticketType;
+          const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+          const ticket = tickets.find(t => t.id === activeTicketId);
+          if (!ticket) return;
 
-            // Update price if element exists
-            const priceElement = document.querySelector(".ticket-price");
-            if (priceElement) {
-              priceElement.textContent = `$${activeEvent.price}`;
-            }
-          }
-        }
+          document.querySelector(".ticket-title").textContent = ticket.title;
+          document.querySelector(".ticket-date").textContent = ticket.date;
+          document.querySelector(".ticket-venue").textContent = ticket.venue;
+          document.querySelector(".ticket-image").style.backgroundImage =
+              `url('${ticket.bannerImage || ticket.venueImage || ""}')`;
+          document.querySelector(".ticket-type").textContent = ticket.ticketType;
+
+          const priceElement = document.querySelector(".ticket-price");
+          if (priceElement) priceElement.textContent = `$${ticket.ticketPrice}`;
       });
+
+
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker.register("sw.js").then(
