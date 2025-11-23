@@ -575,15 +575,22 @@
               position: relative;
           }
 
-           /* Remove flex and scroll-snap properties */
-          /* .swiper-wrapper {
-              
-          } */
+           .swiper-wrapper {
+                display: flex;
+                width: 100%;
+                transition: transform 0.3s ease-in-out;
+            }
 
-          .swiper-slide {
+            .swiper-slide {
+                width: 100% !important;
+                flex-shrink: 0;
+            }
+
+
+          /* .swiper-slide {
               width: 100%;
               margin-right: 0;
-          }
+          } */
 
           .ticket-card {
               margin: 15px;
