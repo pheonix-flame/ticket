@@ -1320,132 +1320,40 @@
       function refreshAllCountdowns() {
         console.log("Refreshing all countdown timers");
 
-        const ticket = getActiveTicket();
-          if (ticket && ticket.showCountdown === false) {
-            console.log("Ticket has countdown disabled, skipping refreshAllCountdowns()");
+        // Get active ticket ID from localStorage
+        const activeTicketId = localStorage.getItem("activeTicket");
+        if (!activeTicketId) {
+            console.error("No active ticket ID found.");
             return;
-          }
+        }
+
+        // Get all tickets and find active ticket
+        const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        const ticket = tickets.find(t => t.id === activeTicketId);
+        if (!ticket) {
+            console.error("Active ticket not found in localStorage tickets.");
+            return;
+        }
+
+        // If ticket has countdown disabled, skip
+        if (ticket.showCountdown === false) {
+            console.log("Ticket has countdown disabled, showing view ticket only");
+        }
 
         // Clear any existing interval
-        if (window.countdownInterval) {
-          clearInterval(window.countdownInterval);
-        }
+        if (window.countdownInterval) clearInterval(window.countdownInterval);
 
-        // Get all countdown sections
         const countdownSections = document.querySelectorAll(".countdown");
-
-        // If no countdown sections found, return early
         if (countdownSections.length === 0) {
-          console.log("No countdown sections found");
-          return;
+            console.log("No countdown sections found");
+            return;
         }
 
-        // Check if countdown display is enabled for this specific ticket
-        // First check if this is an active event with individual countdown preference
-        const activeEventId = localStorage.getItem("activeEvent");
-        let showCountdown = true; // Default to showing countdown
+        // Determine if countdown should be shown
+        const showCountdown = ticket.showCountdown !== false;
 
-        if (activeEventId) {
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          const activeEvent = events.find(
-            (event) => event.id === activeEventId
-          );
-          if (activeEvent && activeEvent.showCountdown !== undefined) {
-            // Use the individual event's countdown preference
-            showCountdown = activeEvent.showCountdown;
-          } else {
-            // Fallback to global setting if no individual preference
-            showCountdown =
-              localStorage.getItem("showCountdownOnMyTickets") !== "false";
-          }
-        } else {
-          // No active event, use global setting
-          showCountdown =
-            localStorage.getItem("showCountdownOnMyTickets") !== "false";
-        }
-
-        // If countdown is disabled globally or per event, apply view ticket to ALL slides
-        if (showCountdown === false) {
-          console.log("Countdown disabled, applying view ticket to all slides");
-          countdownSections.forEach((countdownSection) => {
-            // Clear any existing countdown content
-            countdownSection.innerHTML = "";
-
-            // Create view ticket elements
-            const mobileEntryText = document.createElement("div");
-            mobileEntryText.className = "mobile-entry-text";
-            mobileEntryText.style.cssText =
-              "font-size:18px;font-weight:normal;margin-bottom:0;color:black;";
-            mobileEntryText.textContent =
-              localStorage.getItem("entryLevel") || "Mobile Entry";
-
-            const viewTicketLink = document.createElement("a");
-            viewTicketLink.href = "qr-code.html";
-            viewTicketLink.className = "view-ticket-link";
-
-            const viewTicketContainer = document.createElement("div");
-            viewTicketContainer.className = "view-ticket-container";
-
-            const barcodeIcon = document.createElement("img");
-            barcodeIcon.src = "assets/barcode_tm.png";
-            barcodeIcon.alt = "Barcode Icon";
-            barcodeIcon.className = "view-ticket-icon";
-            barcodeIcon.style.cssText =
-              "width:25px; height:30px; vertical-align:middle; margin-right:8px; filter: invert(1);";
-
-            const viewTicketText = document.createElement("span");
-            viewTicketText.className = "view-ticket-text";
-            viewTicketText.textContent = "View Ticket";
-
-            // Assemble the elements
-            viewTicketContainer.appendChild(barcodeIcon);
-            viewTicketContainer.appendChild(viewTicketText);
-            viewTicketLink.appendChild(viewTicketContainer);
-            countdownSection.appendChild(mobileEntryText);
-            countdownSection.appendChild(viewTicketLink);
-          });
-
-          // Update Swiper after all slides are modified
-          setTimeout(() => {
-            if (window.swiperInstance) {
-              window.swiperInstance.update();
-            }
-          }, 50);
-          return;
-        }
-
-        // Check if any slide meets the 48-hour or countdown finished criteria
-        let shouldApplyViewTicketToAll = false;
-        let viewTicketReason = "";
-
-        // Check the first slide's target date to determine if we should apply view ticket to all
-        const firstCountdownSection = countdownSections[0];
-        const targetDateStr =
-          firstCountdownSection.getAttribute("data-target-date");
-        if (targetDateStr) {
-          const targetDate = new Date(targetDateStr);
-          if (!isNaN(targetDate)) {
-            const currentTime = new Date();
-            const diff = targetDate - currentTime;
-            const hoursRemaining = diff / (1000 * 60 * 60);
-
-            if (diff <= 0) {
-              shouldApplyViewTicketToAll = true;
-              viewTicketReason = "countdown_finished";
-            } else if (hoursRemaining <= 48) {
-              shouldApplyViewTicketToAll = true;
-              viewTicketReason = "48_hour";
-            }
-          }
-        }
-
-        // If any condition is met, apply view ticket to ALL slides
-        if (shouldApplyViewTicketToAll) {
-          console.log(
-            `Applying view ticket to all slides: ${viewTicketReason}`
-          );
-          countdownSections.forEach((countdownSection) => {
-            // Clear any existing countdown content
+        // Helper function to render "View Ticket" UI
+        function renderViewTicket(countdownSection) {
             countdownSection.innerHTML = "";
 
             const mobileEntryContainer = document.createElement("div");
@@ -1454,9 +1362,8 @@
             const mobileEntryText = document.createElement("div");
             mobileEntryText.className = "mobile-entry-text";
             mobileEntryText.style.cssText =
-              "font-size:18px;font-weight:normal;margin-bottom:0;color:black;";
-            mobileEntryText.textContent =
-              localStorage.getItem("entryLevel") || "Mobile Entry";
+                "font-size:18px;font-weight:normal;margin-bottom:0;color:black;";
+            mobileEntryText.textContent = ticket.entryLevel || "Mobile Entry";
 
             const viewTicketLink = document.createElement("a");
             viewTicketLink.href = "qr-code.html";
@@ -1470,154 +1377,102 @@
             barcodeIcon.alt = "Barcode Icon";
             barcodeIcon.className = "view-ticket-icon";
             barcodeIcon.style.cssText =
-              "width:25px; height:30px; vertical-align:middle; margin-right:8px; filter: invert(1);";
+                "width:25px; height:30px; vertical-align:middle; margin-right:8px; filter: invert(1);";
 
             const viewTicketText = document.createElement("span");
             viewTicketText.className = "view-ticket-text";
             viewTicketText.textContent = "View Ticket";
 
-            // Assemble the elements
+            // Assemble
             viewTicketContainer.appendChild(barcodeIcon);
             viewTicketContainer.appendChild(viewTicketText);
             viewTicketLink.appendChild(viewTicketContainer);
             mobileEntryContainer.appendChild(mobileEntryText);
             mobileEntryContainer.appendChild(viewTicketLink);
             countdownSection.appendChild(mobileEntryContainer);
-          });
-
-          // Update Swiper after all slides are modified
-          setTimeout(() => {
-            if (window.swiperInstance) {
-              window.swiperInstance.update();
-            }
-          }, 50);
-          return;
         }
 
-        // Otherwise, set up normal countdown timers for all slides
+        // If countdown is disabled, apply "View Ticket" to all slides
+        if (!showCountdown) {
+            countdownSections.forEach(renderViewTicket);
+            setTimeout(() => window.swiperInstance?.update(), 50);
+            return;
+        }
+
+        // Otherwise, set up countdown timers
         countdownSections.forEach((countdownSection) => {
-          // Get target date from data attribute
-          const targetDateStr =
-            countdownSection.getAttribute("data-target-date");
-          if (!targetDateStr) {
-            console.warn("No target date found for countdown");
-            return;
-          }
-          const targetDate = new Date(targetDateStr);
-          if (isNaN(targetDate)) {
-            console.warn("Invalid target date for countdown:", targetDateStr);
-            return;
-          }
-
-          // Function to update this countdown based on current time
-          function updateCountdown() {
-            const currentTime = new Date();
-            const diff = targetDate - currentTime;
-
-            // Show countdown timer HTML if not already present
-            if (!countdownSection.querySelector(".countdown-label")) {
-              countdownSection.innerHTML = "";
-
-              const countdownLabel = document.createElement("div");
-              countdownLabel.className = "countdown-label";
-              countdownLabel.textContent = "Ticket will be ready in:";
-
-              const countdownTimer = document.createElement("div");
-              countdownTimer.className = "countdown-timer";
-
-              // Create timer units
-              const timerUnits = [
-                { value: "00", label: "DAY" },
-                { value: "00", label: "HOUR" },
-                { value: "00", label: "MIN" },
-                { value: "00", label: "SECONDS" },
-              ];
-
-              timerUnits.forEach((unit) => {
-                const timerUnit = document.createElement("div");
-                timerUnit.className = "timer-unit";
-
-                const timerValue = document.createElement("div");
-                timerValue.className = "timer-value";
-                timerValue.textContent = unit.value;
-
-                const timerLabel = document.createElement("div");
-                timerLabel.className = "timer-label";
-                timerLabel.textContent = unit.label;
-
-                timerUnit.appendChild(timerValue);
-                timerUnit.appendChild(timerLabel);
-                countdownTimer.appendChild(timerUnit);
-              });
-
-              countdownSection.appendChild(countdownLabel);
-              countdownSection.appendChild(countdownTimer);
+            const targetDateStr = countdownSection.getAttribute("data-target-date") || ticket.countdownTargetDate || ticket.eventDate;
+            const targetDate = new Date(targetDateStr);
+            if (isNaN(targetDate)) {
+                console.warn("Invalid countdown target date:", targetDateStr);
+                renderViewTicket(countdownSection);
+                return;
             }
 
-            // Calculate remaining time based on current time (not stored values)
-            if (diff <= 0) {
-              // Countdown finished, show view ticket
-              countdownSection.innerHTML = "";
+            function updateCountdown() {
+                const now = new Date();
+                const diff = targetDate - now;
 
-              const mobileEntryText = document.createElement("div");
-              mobileEntryText.className = "mobile-entry-text";
-              mobileEntryText.style.cssText =
-                "font-size:18px;font-weight:normal;margin-bottom:0;color:black;";
-              mobileEntryText.textContent =
-                localStorage.getItem("entryLevel") || "Mobile Entry";
+                // If countdown finished or within 48 hours, show "View Ticket"
+                const hoursRemaining = diff / (1000 * 60 * 60);
+                if (diff <= 0 || hoursRemaining <= 48) {
+                    renderViewTicket(countdownSection);
+                    return;
+                }
 
-              const viewTicketLink = document.createElement("a");
-              viewTicketLink.href = "qr-code.html";
-              viewTicketLink.className = "view-ticket-link";
+                // Render countdown if not already rendered
+                if (!countdownSection.querySelector(".countdown-timer")) {
+                    countdownSection.innerHTML = "";
 
-              const viewTicketContainer = document.createElement("div");
-              viewTicketContainer.className = "view-ticket-container";
+                    const countdownLabel = document.createElement("div");
+                    countdownLabel.className = "countdown-label";
+                    countdownLabel.textContent = "Ticket will be ready in:";
 
-              const barcodeIcon = document.createElement("img");
-              barcodeIcon.src = "assets/barcode_tm.png";
-              barcodeIcon.alt = "Barcode Icon";
-              barcodeIcon.className = "view-ticket-icon";
-              barcodeIcon.style.cssText =
-                "width:25px; height:30px; vertical-align:middle; margin-right:8px; filter: invert(1);";
+                    const countdownTimer = document.createElement("div");
+                    countdownTimer.className = "countdown-timer";
 
-              const viewTicketText = document.createElement("span");
-              viewTicketText.className = "view-ticket-text";
-              viewTicketText.textContent = "View Ticket";
+                    ["DAY", "HOUR", "MIN", "SECONDS"].forEach((label) => {
+                        const timerUnit = document.createElement("div");
+                        timerUnit.className = "timer-unit";
 
-              // Assemble the elements
-              viewTicketContainer.appendChild(barcodeIcon);
-              viewTicketContainer.appendChild(viewTicketText);
-              viewTicketLink.appendChild(viewTicketContainer);
-              countdownSection.appendChild(mobileEntryText);
-              countdownSection.appendChild(viewTicketLink);
+                        const timerValue = document.createElement("div");
+                        timerValue.className = "timer-value";
+                        timerValue.textContent = "00";
 
-              return; // Stop updating this countdown
+                        const timerLabel = document.createElement("div");
+                        timerLabel.className = "timer-label";
+                        timerLabel.textContent = label;
+
+                        timerUnit.appendChild(timerValue);
+                        timerUnit.appendChild(timerLabel);
+                        countdownTimer.appendChild(timerUnit);
+                    });
+
+                    countdownSection.appendChild(countdownLabel);
+                    countdownSection.appendChild(countdownTimer);
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                const timerValues = countdownSection.querySelectorAll(".timer-value");
+                if (timerValues.length === 4) {
+                    timerValues[0].textContent = String(days).padStart(2, "0");
+                    timerValues[1].textContent = String(hours).padStart(2, "0");
+                    timerValues[2].textContent = String(minutes).padStart(2, "0");
+                    timerValues[3].textContent = String(seconds).padStart(2, "0");
+                }
             }
 
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor(
-              (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-            );
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            // Initial update
+            updateCountdown();
 
-            const timerValues =
-              countdownSection.querySelectorAll(".timer-value");
-            if (timerValues.length === 4) {
-              timerValues[0].textContent = days.toString().padStart(2, "0");
-              timerValues[1].textContent = hours.toString().padStart(2, "0");
-              timerValues[2].textContent = minutes.toString().padStart(2, "0");
-              timerValues[3].textContent = seconds.toString().padStart(2, "0");
-            }
-          }
-
-          // Initial update
-          updateCountdown();
-
-          // Set interval for this countdown
-          const intervalId = setInterval(updateCountdown, 1000);
+            // Update every second
+            setInterval(updateCountdown, 1000);
         });
-      }
+    }
 
 
       function updateCountdown() {
@@ -1731,321 +1586,180 @@
       function updateTicketFromLocalStorage() {
         console.log("Updating ticket from localStorage");
 
-        // Update banner image for all tickets
-        const bannerImage = localStorage.getItem("bannerImage");
-        if (bannerImage) {
-          console.log(
-            "Found banner image in localStorage, updating ticket images"
-          );
-          const ticketImages = document.querySelectorAll(".ticket-image");
-          ticketImages.forEach((imageDiv, index) => {
-            imageDiv.style.backgroundImage = `url('${bannerImage}')`;
-            console.log(`Updated ticket image ${index + 1} with custom banner`);
-          });
-        } else {
-          console.log("No banner image found in localStorage");
-        }
-
-        // Update map based on active event
-        updateMapFromEvent();
-      }
-
-      function updateMapFromEvent() {
+        // Get active ticket ID
         const activeTicketId = localStorage.getItem("activeTicket");
-          console.log("Active ticket ID:", activeTicketId);
-
-          // Get tickets from localStorage
-          const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-
-          // Find active ticket
-          const activeTicket = tickets.find(t => t.id === activeTicketId);
-          console.log("Active ticket found:", activeTicket);
-
-          // Try to get venue image from active ticket, fallback to global venue image
-          let venueImage = activeTicket?.venueImage || localStorage.getItem("venueImage");
-          console.log(
-            "Venue image to use:",
-            venueImage ? "Found (" + venueImage.length + " chars)" : "Not found"
-          );
-
-
-        // Helper function to validate image data with Vercel-specific checks
-        function isValidImageData(imageData) {
-          if (!imageData || typeof imageData !== "string") return false;
-          if (imageData.length < 100) return false; // Too short to be valid
-          if (imageData.length > 500000) return false; // Too large for Vercel
-          if (!imageData.startsWith("data:image/")) return false; // Not a data URL
-
-          // Additional Vercel-specific validation
-          try {
-            // Test if the data URL is properly formatted
-            const parts = imageData.split(",");
-            if (parts.length !== 2) return false;
-
-            // Check if base64 data is valid
-            const base64Data = parts[1];
-            if (base64Data.length === 0) return false;
-
-            return true;
-          } catch (error) {
-            console.error("Error validating image data:", error);
-            return false;
-          }
+        if (!activeTicketId) {
+            console.error("No active ticket ID found in localStorage");
+            return;
         }
 
-        // Helper function to safely display venue image with Vercel fallbacks
-        function displayVenueImage(venueImage, venue, venueAddress) {
-          const mapContent = document.getElementById("mapContent");
-          if (!mapContent) return false;
+        // Get tickets array
+        const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        const activeTicket = tickets.find(t => t.id === activeTicketId);
 
-          try {
-            // Validate the image data before using it
-            if (!isValidImageData(venueImage)) {
-              console.warn(
-                "Invalid venue image data for Vercel, falling back to static map"
-              );
-              return false;
-            }
-
-            // Test if the image loads properly with timeout for Vercel
-            const testImg = new Image();
-            let imageLoadTimeout;
-
-            testImg.onload = function () {
-              clearTimeout(imageLoadTimeout);
-              console.log(
-                "Venue image loaded successfully for Vercel, displaying"
-              );
-              mapContent.innerHTML = `
-                            <div class="venue-image-container">
-                                <img src="${venueImage}" alt="${venue}" class="venue-image" 
-                                     onerror="this.parentElement.innerHTML='<div class=\'static-map\'><div class=\'venue-info\'><h3>${venue}</h3><p>${venueAddress}</p><a href=\'https://maps.google.com/?q=${encodeURIComponent(
-                venueAddress
-              )}\' target=\'_blank\'>Get Directions</a></div></div>'">
-                                <div class="venue-overlay">
-                                    <div class="venue-info">
-                                        <h3>${venue}</h3>
-                                        <p>${venueAddress}</p>
-                                        <a href="https://maps.google.com/?q=${encodeURIComponent(
-                                          venueAddress
-                                        )}" target="_blank">Get Directions</a>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-            };
-
-            testImg.onerror = function () {
-              clearTimeout(imageLoadTimeout);
-              console.error(
-                "Venue image failed to load for Vercel, falling back to static map"
-              );
-              mapContent.innerHTML = `
-                            <div class="static-map">
-                                <div class="venue-info">
-                                    <h3>${venue}</h3>
-                                    <p>${venueAddress}</p>
-                                    <a href="https://maps.google.com/?q=${encodeURIComponent(
-                                      venueAddress
-                                    )}" target="_blank">Get Directions</a>
-                                </div>
-                            </div>
-                        `;
-            };
-
-            // Set timeout for Vercel (5 seconds)
-            imageLoadTimeout = setTimeout(function () {
-              console.error(
-                "Venue image load timeout for Vercel, falling back to static map"
-              );
-              testImg.onerror();
-            }, 5000);
-
-            testImg.src = venueImage;
-            return true;
-          } catch (error) {
-            console.error("Error displaying venue image for Vercel:", error);
-            return false;
-          }
+        if (!activeTicket) {
+            console.error("Active ticket not found in tickets array");
+            return;
         }
 
-        if (activeEventId) {
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          console.log("All events:", events);
-          const activeEvent = events.find(
-            (event) => event.id === activeEventId
-          );
-          console.log("Active event found:", activeEvent);
-
-          if (activeEvent) {
-            // Use event-specific venue and location or fallback to defaults
-            const venue = activeEvent.venue || "Chase Center";
-            const venueLocation =
-              activeEvent.venueLocation ||
-              localStorage.getItem("venueLocation") ||
-              "San Francisco, CA";
-            const venueAddress = `${venue}, ${venueLocation}`;
-
-            // Try multiple sources for venue image with Vercel validation
-            let venueImage = "";
-            if (isValidImageData(globalVenueImage)) {
-              venueImage = globalVenueImage;
-              console.log(
-                "Using global venue image from localStorage for Vercel"
-              );
-            } else if (isValidImageData(activeEvent.venueImage)) {
-              venueImage = activeEvent.venueImage;
-              console.log("Using venue image from active event for Vercel");
-            }
-
-            console.log(
-              "Final venue image to use for Vercel:",
-              venueImage
-                ? "Found (" + venueImage.length + " chars)"
-                : "Not found"
-            );
-
-            // Try to display venue image, fallback to static map if it fails
-            if (
-              venueImage &&
-              !displayVenueImage(venueImage, venue, venueAddress)
-            ) {
-              // Fallback to static map for Vercel
-              const mapContent = document.getElementById("mapContent");
-              if (mapContent) {
-                mapContent.innerHTML = `
-                                <div class="static-map">
-                                    <div class="venue-info">
-                                        <h3>${venue}</h3>
-                                        <p>${venueAddress}</p>
-                                        <a href="https://maps.google.com/?q=${encodeURIComponent(
-                                          venueAddress
-                                        )}" target="_blank">Get Directions</a>
-                                    </div>
-                                </div>
-                            `;
-                console.log(
-                  `Updated map for event: ${activeEvent.title} at ${venueAddress} (Vercel fallback to static map)`
-                );
-              }
-            }
-          }
-        } else {
-          // No active event, use global venue info
-          const venue = localStorage.getItem("eventVenue") || "Chase Center";
-          const venueLocation =
-            localStorage.getItem("venueLocation") || "San Francisco, CA";
-          const venueAddress = `${venue}, ${venueLocation}`;
-
-          console.log(
-            "No active event, using global venue image for Vercel:",
-            globalVenueImage ? "Found" : "Not found"
-          );
-
-          // Try to display global venue image, fallback to static map if it fails
-          if (
-            isValidImageData(globalVenueImage) &&
-            !displayVenueImage(globalVenueImage, venue, venueAddress)
-          ) {
-            // Fallback to static map for Vercel
-            const mapContent = document.getElementById("mapContent");
-            if (mapContent) {
-              mapContent.innerHTML = `
-                            <div class="static-map">
-                                <div class="venue-info">
-                                    <h3>${venue}</h3>
-                                    <p>${venueAddress}</p>
-                                    <a href="https://maps.google.com/?q=${encodeURIComponent(
-                                      venueAddress
-                                    )}" target="_blank">Get Directions</a>
-                                </div>
-                            </div>
-                        `;
-              console.log(
-                `Updated map with global venue: ${venueAddress} (Vercel fallback to static map)`
-              );
-            }
-          }
-        }
-      }
-
-      function updateBannerImages() {
-        const activeEventId = localStorage.getItem("activeEvent");
-        if (activeEventId) {
-          const events = JSON.parse(localStorage.getItem("events") || "[]");
-          const activeEvent = events.find(
-            (event) => event.id === activeEventId
-          );
-
-          if (activeEvent && activeEvent.bannerImage) {
-            console.log(
-              "Found event-specific banner image, updating ticket images"
-            );
+        // Update banner image only if it exists on the ticket
+        if (activeTicket.bannerImage) {
+            console.log("Updating ticket images with active ticket banner image");
             const ticketImages = document.querySelectorAll(".ticket-image");
             ticketImages.forEach((imageDiv, index) => {
-              imageDiv.style.backgroundImage = `url('${activeEvent.bannerImage}')`;
-              console.log(
-                `Updated ticket image ${index + 1} with event banner`
-              );
+                imageDiv.style.backgroundImage = `url('${activeTicket.bannerImage}')`;
+                console.log(`Updated ticket image ${index + 1} with banner image`);
             });
-          } else {
-            // Fallback to global banner image
-            const bannerImage = localStorage.getItem("bannerImage");
-            if (bannerImage) {
-              console.log("Using global banner image");
-              const ticketImages = document.querySelectorAll(".ticket-image");
-              ticketImages.forEach((imageDiv, index) => {
-                imageDiv.style.backgroundImage = `url('${bannerImage}')`;
-              });
-            }
-          }
+        } else {
+            console.log("No banner image found on active ticket");
         }
-      }
 
-      function updateSeatInfoDisplay() {
-        const seatType =
-          localStorage.getItem("seatType") || "General Admission";
-        const section = localStorage.getItem("section") || "GAFLR";
-        const row = localStorage.getItem("row") || "22";
-        const seat = localStorage.getItem("seat") || "24";
-        const seatInfoContainer = document.getElementById("seatInfoContainer");
+        // Update map (can be refactored later to use ticket details)
+        updateMapFromEvent();
+    }
 
-        // Clear previous content
-        seatInfoContainer.innerHTML = "";
+    function updateMapFromEvent() {
+        const activeTicketId = localStorage.getItem("activeTicket");
+        if (!activeTicketId) {
+            console.error("No active ticket ID found in localStorage");
+            return;
+        }
 
-        if (seatType === "General Admission") {
-          // General Admission layout
-          seatInfoContainer.innerHTML = `
-                    <div class="general-admission-layout">
-                        <div class="seat-column">
-                            <div class="seat-label">SEC</div>
-                            <div class="seat-value">${section}</div>
-                        </div>
-                        <div class="seat-column">
-                            <div class="general-admission-text">General Admission</div>
+        // Get tickets array
+        const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        const activeTicket = tickets.find(t => t.id === activeTicketId);
+        if (!activeTicket) {
+            console.error("Active ticket not found in tickets array");
+            return;
+        }
+
+        const venue = activeTicket.venue;
+        const venueLocation = activeTicket.venueLocation;
+        const venueAddress = venue && venueLocation ? `${venue}, ${venueLocation}` : "Unknown Venue";
+
+        const mapContent = document.getElementById("mapContent");
+        if (!mapContent) return;
+
+        if (activeTicket.venueImage) {
+            // Display venue image if it exists
+            const img = new Image();
+            img.onload = () => {
+                mapContent.innerHTML = `
+                    <div class="venue-image-container">
+                        <img src="${activeTicket.venueImage}" alt="${venue}" class="venue-image"
+                            onerror="this.parentElement.innerHTML='<div class=\'static-map\'><div class=\'venue-info\'><h3>${venue}</h3><p>${venueAddress}</p><a href=\'https://maps.google.com/?q=${encodeURIComponent(
+                    venueAddress
+                )}\' target=\'_blank\'>Get Directions</a></div></div>'">
+                        <div class="venue-overlay">
+                            <div class="venue-info">
+                                <h3>${venue}</h3>
+                                <p>${venueAddress}</p>
+                                <a href="https://maps.google.com/?q=${encodeURIComponent(
+                                    venueAddress
+                                )}" target="_blank">Get Directions</a>
+                            </div>
                         </div>
                     </div>
                 `;
+            };
+            img.onerror = () => {
+                mapContent.innerHTML = `
+                    <div class="static-map">
+                        <div class="venue-info">
+                            <h3>${venue || "Unknown Venue"}</h3>
+                            <p>${venueAddress}</p>
+                            <a href="https://maps.google.com/?q=${encodeURIComponent(
+                                venueAddress
+                            )}" target="_blank">Get Directions</a>
+                        </div>
+                    </div>
+                `;
+            };
+            img.src = activeTicket.venueImage;
         } else {
-          // Reserved Seating layout
-          seatInfoContainer.innerHTML = `
+            // Fallback to static map if no venue image
+            mapContent.innerHTML = `
+                <div class="static-map">
+                    <div class="venue-info">
+                        <h3>${venue || "Unknown Venue"}</h3>
+                        <p>${venueAddress}</p>
+                        <a href="https://maps.google.com/?q=${encodeURIComponent(
+                            venueAddress
+                        )}" target="_blank">Get Directions</a>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function updateBannerImages() {
+        const activeTicketId = localStorage.getItem("activeTicket");
+        if (!activeTicketId) return;
+
+        const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        const activeTicket = tickets.find(t => t.id === activeTicketId);
+        if (!activeTicket) return;
+
+        if (activeTicket.bannerImage) {
+            console.log("Updating ticket images with active ticket banner image");
+            const ticketImages = document.querySelectorAll(".ticket-image");
+            ticketImages.forEach((imageDiv, index) => {
+                imageDiv.style.backgroundImage = `url('${activeTicket.bannerImage}')`;
+                console.log(`Updated ticket image ${index + 1} with banner image`);
+            });
+        }
+    }
+
+    function updateSeatInfoDisplay() {
+        const activeTicketId = localStorage.getItem("activeTicket");
+        if (!activeTicketId) return;
+
+        const tickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        const activeTicket = tickets.find(t => t.id === activeTicketId);
+        if (!activeTicket) return;
+
+        const seatType = activeTicket.seatType || "General Admission";
+        const section = activeTicket.section || "";
+        const row = activeTicket.row || "";
+        const seat = activeTicket.seat || "";
+
+        const seatInfoContainer = document.getElementById("seatInfoContainer");
+        if (!seatInfoContainer) return;
+
+        seatInfoContainer.innerHTML = "";
+
+        if (seatType === "General Admission") {
+            seatInfoContainer.innerHTML = `
+                <div class="general-admission-layout">
                     <div class="seat-column">
                         <div class="seat-label">SEC</div>
                         <div class="seat-value">${section}</div>
                     </div>
                     <div class="seat-column">
-                        <div class="seat-label">ROW</div>
-                        <div class="seat-value">${row}</div>
+                        <div class="general-admission-text">General Admission</div>
                     </div>
-                    <div class="seat-column">
-                        <div class="seat-label">SEAT</div>
-                        <div class="seat-value">${seat}</div>
-                    </div>
-                `;
+                </div>
+            `;
+        } else {
+            seatInfoContainer.innerHTML = `
+                <div class="seat-column">
+                    <div class="seat-label">SEC</div>
+                    <div class="seat-value">${section}</div>
+                </div>
+                <div class="seat-column">
+                    <div class="seat-label">ROW</div>
+                    <div class="seat-value">${row}</div>
+                </div>
+                <div class="seat-column">
+                    <div class="seat-label">SEAT</div>
+                    <div class="seat-value">${seat}</div>
+                </div>
+            `;
         }
-      }
+    }
 
-      // Improve navigation to QR code page
+
+    // Improve navigation to QR code page
       function navigateToQRCode(event) {
         event.preventDefault();
 
