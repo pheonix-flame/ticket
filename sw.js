@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ticketmaster-cache-v2';
+const CACHE_NAME = 'ticketmaster-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,16 +8,11 @@ const urlsToCache = [
   '/account.html',
   '/my-events.html',
   '/events.html',
-  '/qr-code.html',
-  '/assets/icon-removebg-preview.png',
+  '/sell.html',
   '/assets/icon.png',
-  '/assets/WhatsApp Image 2025-05-25 at 20.35.42.jpeg',
   '/banner-handler.js',
-  '/eventManager.js',
-  '/subscription-enforcer.js',
   '/assets/android-launchericon-192-192.png',
-  '/assets/android-launchericon-512-512.png',
-  '/api/app.js'
+  '/assets/android-launchericon-512-512.png'
 ];
 
 // Install – pre-cache static assets
