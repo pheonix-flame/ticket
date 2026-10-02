@@ -1,24 +1,22 @@
 // Venue maps using free services, no API key needed:
 //  - Leaflet (map library) from cdnjs
-//  - Esri's free World Street Map tiles (no key, labels in English
-//    everywhere); if they fail to load, OpenStreetMap's own tiles are used
+//  - OpenStreetMap's own map tiles (no key); if they fail to load, Esri's
+//    free World Street Map is used instead
 //  - OpenStreetMap Nominatim for turning a venue name/address into coordinates
 
 const VenueMap = (() => {
   const LEAFLET_JS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
   const LEAFLET_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
   // Keyless tile providers, tried in order.
-  // Esri first: its labels are in English worldwide, while OpenStreetMap's
-  // tiles use each country's local language (e.g. Arabic script).
   const PROVIDERS = [
-    {
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-      attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    },
     {
       url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    },
+    {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
       maxZoom: 19,
     },
   ];
@@ -63,8 +61,8 @@ const VenueMap = (() => {
     const wait = 1100 - (Date.now() - lastGeocode);
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
     lastGeocode = Date.now();
-    const url = `${GEOCODER}?format=jsonv2&limit=1&addressdetails=0&accept-language=en&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, { headers: { Accept: 'application/json', 'Accept-Language': 'en' } });
+    const url = `${GEOCODER}?format=jsonv2&limit=1&addressdetails=0&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) throw new Error(`Location lookup failed (${res.status})`);
     const [hit] = await res.json();
     const result = hit ? { lat: +hit.lat, lng: +hit.lon, label: hit.display_name } : null;
