@@ -1,0 +1,118 @@
+{
+  "updated": "2026-10-02",
+  "location": "Los Angeles, CA",
+  "categories": ["All", "Concerts", "Sports", "Arts & Theater", "Comedy", "Family"],
+  "sections": [
+    {
+      "id": "featured",
+      "title": "Featured",
+      "style": "hero",
+      "items": [
+        {
+          "id": "country-nights",
+          "title": "Country Nights Tour 2026",
+          "category": "Concerts",
+          "startAt": "2026-11-14T19:30",
+          "venue": "Crypto.com Arena",
+          "city": "Los Angeles, CA",
+          "image": "content/img/country-tour.jpg",
+          "priceFrom": 59,
+          "badge": "On Sale Now",
+          "about": "A night of chart-topping country hits, live band and special guests."
+        },
+        {
+          "id": "comedy-guide",
+          "title": "The Comedy Guide: Best Shows This Season",
+          "category": "Comedy",
+          "image": "content/img/comedy-guide.jpg",
+          "badge": "Guide",
+          "about": "Stand-up specials, club nights and arena tours coming to a city near you."
+        }
+      ]
+    },
+    {
+      "id": "popular",
+      "title": "Popular Near You",
+      "style": "cards",
+      "items": [
+        {
+          "id": "outlaw-sessions",
+          "title": "Outlaw Sessions Live",
+          "category": "Concerts",
+          "startAt": "2026-12-03T20:00",
+          "venue": "Hollywood Bowl",
+          "city": "Los Angeles, CA",
+          "image": "content/img/outlaw-sessions.jpg",
+          "priceFrom": 45
+        },
+        {
+          "id": "lakers-warriors",
+          "title": "Los Angeles Lakers vs. Golden State Warriors",
+          "category": "Sports",
+          "startAt": "2026-10-28T19:30",
+          "venue": "Crypto.com Arena",
+          "city": "Los Angeles, CA",
+          "color": "#552583",
+          "priceFrom": 120
+        },
+        {
+          "id": "stand-up-night",
+          "title": "Stand-Up Night: Headliners Live",
+          "category": "Comedy",
+          "startAt": "2026-11-07T21:00",
+          "venue": "The Comedy Store",
+          "city": "West Hollywood, CA",
+          "image": "content/img/comedy-header.jpg",
+          "priceFrom": 35
+        },
+        {
+          "id": "lion-king",
+          "title": "The Lion King",
+          "category": "Arts & Theater",
+          "startAt": "2026-12-12T14:00",
+          "venue": "Pantages Theatre",
+          "city": "Los Angeles, CA",
+          "color": "#C2410C",
+          "priceFrom": 89
+        }
+      ]
+    },
+    {
+      "id": "this-weekend",
+      "title": "This Weekend",
+      "style": "list",
+      "items": [
+        {
+          "id": "disney-on-ice",
+          "title": "Disney On Ice: Let's Dance!",
+          "category": "Family",
+          "startAt": "2026-10-10T11:00",
+          "venue": "Honda Center",
+          "city": "Anaheim, CA",
+          "color": "#0E7490",
+          "priceFrom": 25
+        },
+        {
+          "id": "rams-49ers",
+          "title": "Los Angeles Rams vs. San Francisco 49ers",
+          "category": "Sports",
+          "startAt": "2026-10-11T13:25",
+          "venue": "SoFi Stadium",
+          "city": "Inglewood, CA",
+          "color": "#003594",
+          "priceFrom": 95
+        },
+        {
+          "id": "symphony-night",
+          "title": "LA Phil: Symphony Under the Stars",
+          "category": "Arts & Theater",
+          "startAt": "2026-10-10T20:00",
+          "venue": "Walt Disney Concert Hall",
+          "city": "Los Angeles, CA",
+          "color": "#1F262D",
+          "priceFrom": 40
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1F262D">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ticketmaster">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <title>Ticketmaster</title>
+  <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div id="app">
+    <main id="view"></main>
+
+    <nav class="tabbar" id="tabbar">
+      <a href="#/" data-tab="discover">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <span>Discover</span>
+      </a>
+      <a href="#/foryou" data-tab="foryou">
+        <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>
+        <span>For You</span>
+      </a>
+      <a href="#/tickets" data-tab="tickets">
+        <svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M9 6v12" stroke-dasharray="2 2"/></svg>
+        <span>My Tickets</span>
+      </a>
+      <a href="#/sell" data-tab="sell">
+        <svg viewBox="0 0 24 24"><path d="M20 12 12 20l-8-8V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+        <span>Sell</span>
+      </a>
+      <a href="#/account" data-tab="account">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <span>My Account</span>
+      </a>
+    </nav>
+
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <script src="db.js"></script>
+  <script src="map.js"></script>
+  <script src="app.js"></script>
+  <script src="home.js"></script>
+</body>
+</html>
