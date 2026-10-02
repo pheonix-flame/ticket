@@ -773,7 +773,6 @@
     </div>
 
     <script src="banner-handler.js"></script>
-    <script src="subscription-enforcer.js"></script>
 
 
     <script> 
@@ -884,14 +883,6 @@
 
             // Create new ticket
             createBtn.addEventListener('click', async () => { // <--- make this async
-                if (tickets.length >= 5) {
-                    alert('You cannot create more than 5 tickets.');
-                    return;
-                }
-
-                const ok = await hasValidSubscription(); // safe to use await now
-                if (!ok) return; // stop if expired
-
                 saveTicket(true);
             });
 
@@ -899,9 +890,6 @@
             // Save (create or edit)
             form.addEventListener('submit', async (e) => { // <--- make this async
                 e.preventDefault();
-
-                const ok = await hasValidSubscription();
-                if (!ok) return; // stop if expired
 
                 if (activeTicketId) {
                     saveTicket(false); 
@@ -982,11 +970,6 @@
                             return;
                         }
                     }
-                    if (isNew && tickets.length >= 4) {
-                        alert('You cannot create more than 4 tickets.');
-                        return;
-                    }
-
                     // Format parseable date
                     let parseableDate = '';
                     let formattedDate = eventDate;
@@ -1075,7 +1058,11 @@
                     }
                 } catch (error) {
                     console.error('Error saving ticket:', error);
-                    alert('Error saving ticket. Please try again.');
+                    if (error && (error.name === 'QuotaExceededError' || error.code === 22)) {
+                        alert('Storage is full. Delete some tickets or use smaller banner images, then try again.');
+                    } else {
+                        alert('Error saving ticket. Please try again.');
+                    }
                 }
             }
 

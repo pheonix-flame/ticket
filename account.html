@@ -272,10 +272,6 @@
             height: 18px;
         }
 
-        .sign-out-btn {
-            color: #ff3b30;
-        }
-
         /* iOS PWA specific styles */
         @supports (padding-top: env(safe-area-inset-top)) {
             body {
@@ -409,12 +405,6 @@ body {
                     <i class="fas fa-chevron-right" style="color: #d2d2d7;"></i>
                 </div>
             </div>
-
-            <div class="section">
-                <div class="menu-item" onclick="openSignOutModal()" style="justify-content: center;">
-                    <div class="text sign-out-btn"><i class="fas fa-sign-out-alt"></i> Sign Out</div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -473,19 +463,6 @@ body {
         </div>
     </div>
 
-    <!-- Sign Out Modal -->
-    <div class="modal" id="signOutModal">
-        <div class="modal-content">
-            <div class="modal-title">Sign Out</div>
-            <p style="margin-bottom: 20px;">Are you sure you want to sign out?</p>
-            <div class="modal-actions">
-                <button class="modal-btn cancel" onclick="closeModal('signOutModal')">Cancel</button>
-                <button class="modal-btn confirm" onclick="signOut()">Sign Out</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="subscription-enforcer.js"></script>
 
     <script>
         // Toggle switches functionality
@@ -508,10 +485,6 @@ body {
         function openCountryModal() {
             document.getElementById('edit-country').value = document.getElementById('user-country').textContent;
             document.getElementById('countryModal').style.display = 'flex';
-        }
-
-        function openSignOutModal() {
-            document.getElementById('signOutModal').style.display = 'flex';
         }
 
         function closeModal(modalId) {
@@ -553,39 +526,6 @@ body {
             // Store country in localStorage for persistence
             localStorage.setItem('userCountry', newCountry);
             closeModal('countryModal');
-        }
-
-        async function signOut() {
-            const username = localStorage.getItem("ticketowner");
-
-            // Call logout API if user exists
-            if (username) {
-                try {
-                    const response = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'logout',
-                            username: username
-                        })
-                    });
-
-                    const result = await response.json();
-                    console.log("Logout result:", result);
-
-                } catch (err) {
-                    console.error("Logout API error:", err);
-                }
-            }
-
-            // Close modal
-            closeModal('signOutModal');
-
-            // Clear local storage
-            localStorage.clear();
-
-            // Redirect to login
-            window.location.href = "index.html";
         }
 
 
