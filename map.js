@@ -7,6 +7,12 @@ const VenueMap = (() => {
   const LEAFLET_JS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
   const LEAFLET_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
   const TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const TILES_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+  function isDark() {
+    const t = document.documentElement.getAttribute('data-theme');
+    return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  }
   const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
   const GEOCODER = 'https://nominatim.openstreetmap.org/search';
 
@@ -80,7 +86,7 @@ const VenueMap = (() => {
       keyboard: false,
       tap: false,
     });
-    L.tileLayer(TILES, { attribution: ATTRIBUTION, subdomains: 'abcd', maxZoom: 19, detectRetina: true }).addTo(map);
+    L.tileLayer(isDark() ? TILES_DARK : TILES, { attribution: ATTRIBUTION, subdomains: 'abcd', maxZoom: 19, detectRetina: true }).addTo(map);
     const pin = L.divIcon({
       className: 'tm-pin',
       html: '<span></span>',

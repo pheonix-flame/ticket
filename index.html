@@ -1,44 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#026CDF">
-    <link rel="icon" href="assets/android-launchericon-192-192.png" type="image/png">
-    <title>Ticketmaster</title>
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            background-color: #026CDF;
-        }
-
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #splash-logo {
-            width: 150px;
-            height: 150px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ticketmaster">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <title>Ticketmaster</title>
+  <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
+  <script>
+    // Apply the saved appearance before first paint to avoid a flash.
+    try {
+      var t = localStorage.getItem('appearance');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="app.css">
 </head>
 <body>
-    <img id="splash-logo" src="assets/android-launchericon-512-512.png" alt="App Logo">
+  <div id="app">
+    <main id="view"></main>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .catch(err => console.error('Service Worker registration failed:', err));
-        }
+    <nav class="tabbar" id="tabbar">
+      <a href="#/" data-tab="home">
+        <svg class="o" viewBox="0 0 24 24"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/></svg>
+        <svg class="f" viewBox="0 0 24 24"><path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/></svg>
+        <span>Home</span>
+      </a>
+      <a href="#/search" data-tab="search">
+        <svg class="o" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>
+        <svg class="f s" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>
+        <span>Search</span>
+      </a>
+      <a href="#/watchlist" data-tab="watchlist">
+        <svg class="o" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4.5L5 21V4.5a1 1 0 0 1 1-1z"/></svg>
+        <svg class="f" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4.5L5 21V4.5a1 1 0 0 1 1-1z"/></svg>
+        <span>Watchlist</span>
+      </a>
+      <a href="#/tickets" data-tab="tickets">
+        <svg class="o" viewBox="0 0 24 24"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5V14a2 2 0 0 0 0-4z"/><path d="M14.5 6v12" stroke-dasharray="1.6 2"/></svg>
+        <svg class="f" viewBox="0 0 24 24"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5V14a2 2 0 0 0 0-4z"/></svg>
+        <span>My Tickets</span>
+      </a>
+      <a href="#/account" data-tab="account">
+        <svg class="o" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3.2"/><path d="M6.3 18.4a6.5 6.5 0 0 1 11.4 0"/></svg>
+        <svg class="f" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 3.8a3.2 3.2 0 1 1 0 6.4 3.2 3.2 0 0 1 0-6.4zm0 12.2a7 7 0 0 1-5.4-2.6 6.5 6.5 0 0 1 10.8 0A7 7 0 0 1 12 19z"/></svg>
+        <span>Account</span>
+      </a>
+    </nav>
 
-        // No login: go straight to the home page.
-        setTimeout(() => {
-            window.location.replace('home.html');
-        }, 500);
-    </script>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <script src="db.js"></script>
+  <script src="map.js"></script>
+  <script src="app.js"></script>
+  <script src="tickets.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>

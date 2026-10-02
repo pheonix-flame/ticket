@@ -1,74 +1,101 @@
-const CACHE_NAME = 'ticketmaster-cache-v3';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/home.html',
-  '/ticket.html',
-  '/for-you.html',
-  '/account.html',
-  '/my-events.html',
-  '/events.html',
-  '/sell.html',
-  '/assets/icon.png',
-  '/banner-handler.js',
-  '/assets/android-launchericon-192-192.png',
-  '/assets/android-launchericon-512-512.png'
+// Offline support. Tickets live in IndexedDB; this caches the app itself,
+// the home page content, the map library and map tiles you've viewed.
+// Bump VERSION whenever you deploy changes so installed apps show "Refresh".
+const VERSION = '3.0.0';
+const SHELL_CACHE = `tm-shell-${VERSION}`;
+const RUNTIME_CACHE = 'tm-runtime';
+const TILE_CACHE = 'tm-tiles';
+const MAX_TILES = 600;
+
+const SHELL = [
+  './',
+  './index.html',
+  './app.css',
+  './app.js',
+  './db.js',
+  './map.js',
+  './home.js',
+  './tickets.js',
+  './manifest.json',
+  './content/home.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png',
 ];
 
-// Install – pre-cache static assets
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-      .then(() => self.skipWaiting()) // Activate immediately
-      .catch(err => console.error('Cache install failed:', err))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.addAll(SHELL);
+    // Replacing the old multi-page app: take over straight away.
+    const keys = await caches.keys();
+    if (keys.some(k => k.startsWith('ticketmaster-cache'))) self.skipWaiting();
+  })());
 });
 
-// Activate – remove old caches
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
-            console.log('Deleting old cache:', cache);
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim()) // take control immediately
+    caches.keys()
+      .then(keys => Promise.all(keys
+        // also clears caches left by the old multi-page app
+        .filter(k => (k.startsWith('tm-shell-') && k !== SHELL_CACHE) || k.startsWith('tm-wallet-') || k.startsWith('ticketmaster-cache'))
+        .map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch – network-first for HTML, cache-first for others
+async function networkFirst(request, cacheName) {
+  try {
+    const res = await fetch(request);
+    if (res.ok) {
+      const copy = res.clone();
+      caches.open(cacheName).then(c => c.put(request, copy));
+    }
+    return res;
+  } catch (err) {
+    const cached = await caches.match(request, { ignoreSearch: request.mode === 'navigate' });
+    if (cached) return cached;
+    if (request.mode === 'navigate') return caches.match('./index.html');
+    throw err;
+  }
+}
+
+async function cacheFirst(request, cacheName, limit) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const res = await fetch(request);
+  if (res.ok || res.type === 'opaque') {
+    const cache = await caches.open(cacheName);
+    await cache.put(request, res.clone());
+    if (limit) {
+      const keys = await cache.keys();
+      if (keys.length > limit) await Promise.all(keys.slice(0, keys.length - limit).map(k => cache.delete(k)));
+    }
+  }
+  return res;
+}
+
 self.addEventListener('fetch', event => {
   const { request } = event;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
 
-  // For navigation (HTML pages)
-  if (request.mode === 'navigate' || (request.method === 'GET' && request.headers.get('accept').includes('text/html'))) {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(request).then(res => res || caches.match('/index.html')))
-    );
+  // Map tiles: cache-first so venues you've opened still show offline.
+  if (url.hostname.endsWith('basemaps.cartocdn.com') || url.hostname.endsWith('tile.openstreetmap.org')) {
+    event.respondWith(cacheFirst(request, TILE_CACHE, MAX_TILES));
     return;
   }
+  // Map library from the CDN never changes for a given version.
+  if (url.hostname === 'cdnjs.cloudflare.com') {
+    event.respondWith(cacheFirst(request, RUNTIME_CACHE));
+    return;
+  }
+  if (url.origin !== self.location.origin) return;
 
-  // For static files (JS, CSS, images)
-  event.respondWith(
-    caches.match(request).then(cachedResponse => {
-      if (cachedResponse) return cachedResponse;
-
-      return fetch(request).then(networkResponse => {
-        const clone = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-        return networkResponse;
-      }).catch(() => caches.match('/assets/icon.png'));
-    })
-  );
+  // Everything of our own: network first so updates appear right away.
+  event.respondWith(networkFirst(request, SHELL_CACHE));
 });

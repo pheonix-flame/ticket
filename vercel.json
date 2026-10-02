@@ -1,0 +1,21 @@
+{
+  "redirects": [
+    { "source": "/home.html", "destination": "/", "permanent": true },
+    { "source": "/for-you.html", "destination": "/", "permanent": true },
+    { "source": "/events.html", "destination": "/", "permanent": true },
+    { "source": "/my-events.html", "destination": "/#/tickets", "permanent": true },
+    { "source": "/ticket.html", "destination": "/#/tickets", "permanent": true },
+    { "source": "/ticket2.html", "destination": "/#/tickets", "permanent": true },
+    { "source": "/qr-code.html", "destination": "/#/tickets", "permanent": true },
+    { "source": "/sell.html", "destination": "/#/tickets", "permanent": true },
+    { "source": "/account.html", "destination": "/#/account", "permanent": true },
+    { "source": "/v2", "destination": "/", "permanent": true },
+    { "source": "/v2/:path*", "destination": "/", "permanent": true }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ]
+}

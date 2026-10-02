@@ -1,23 +1,25 @@
 {
-  "name": "Ticket Master",
-  "short_name": "Ticket Master",
-  "description": "Manage and access your event tickets easily.",
-  "theme_color": "#026CDF",
-  "background_color": "#026CDF",
-  "start_url": "index.html",
+  "id": "./",
+  "name": "Ticketmaster",
+  "short_name": "Ticketmaster",
+  "description": "Discover events and keep all your tickets in one place, even offline.",
+  "lang": "en-US",
+  "theme_color": "#024DDF",
+  "background_color": "#024DDF",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone"],
   "orientation": "portrait",
+  "categories": ["entertainment", "lifestyle"],
   "icons": [
-    {
-      "src": "assets/android-launchericon-192-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/android-launchericon-512-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "My Tickets", "url": "./#/tickets", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Add Tickets", "url": "./#/new", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Home", "url": "./#/", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }
