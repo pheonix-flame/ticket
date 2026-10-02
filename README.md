@@ -8,7 +8,9 @@ as many as the phone has room for.
 - **Search**: recent searches, category browsing, and results that include your own tickets
 - **Watchlist**: events saved with the bookmark button
 - **My Tickets**: a large *Next Event* card with a live countdown in the last 10 days, then the rest of your events
-- **Ticket screen**: swipeable tickets with SEC / ROW / SEAT, a rotating barcode with a moving light (it follows the phone's tilt on iPhone after you tap the barcode), face value, venue map and directions, venue policies, accessibility and order details
+- **Ticket screen** (matches the Ticketmaster app's order page): event photo with the date, title, venue and ticket count card, **View Tickets**, Tickets / Extras tabs, the order number and a block per ticket (SECTION / ROW / SEAT, or GENERAL ADMISSION), an optional "Listed for sale at" line, a More Options venue map, and the floating Upgrade / Transfer / Sell bar. The header shrinks to the title, venue and a barcode button as you scroll.
+- **View Tickets**: full-screen, swipeable barcodes that refresh every 15 seconds, with a moving light (it follows the phone's tilt on iPhone after you tap the barcode)
+- **Photos**: every event photo is shown at 3:2. After picking a photo you can drag and zoom it, or tap **Fit** to keep the whole photo (blurred edges fill the gaps). **Adjust photo** re-frames it later.
 - **Account**: Light / Dark / System appearance, home page editor, backup and restore
 
 ## Files

@@ -575,7 +575,7 @@ function openItemEditor(d, si, ii, done) {
       ${image ? coverHTML(image) : `<span class="ip-empty">${icon('image')}Add Photo</span>`}
       <input type="file" accept="image/*" id="itFile">
     </label>
-    <div class="group-foot"><button type="button" id="itRmImg" style="color:var(--danger)">Remove photo</button></div>
+    <div class="group-foot img-actions"><button type="button" id="itAdj">Adjust photo</button><button type="button" id="itRmImg" class="rm">Remove photo</button></div>
     <div class="group-title">Event</div>
     <div class="group">
       ${field('title', 'Title')}
@@ -603,10 +603,20 @@ function openItemEditor(d, si, ii, done) {
   sheet.querySelector('#itFile').addEventListener('change', async e => {
     const f = e.target.files[0];
     if (!f) return;
-    image = await compressImage(f, 1600);
-    setPreview();
+    e.target.value = '';
+    const cropped = await openCropper(f);
+    if (cropped) { image = cropped; setPreview(); }
   });
   sheet.querySelector('#itRmImg').onclick = () => { image = null; setPreview(); };
+  sheet.querySelector('#itAdj').onclick = async () => {
+    if (!image) return toast('Add a photo first');
+    // published images are URLs; fetch them so they can be re-framed
+    let src = image instanceof Blob ? image : null;
+    if (!src) { try { src = await (await fetch(image)).blob(); } catch (_) {} }
+    if (!src) return toast('Could not load that photo');
+    const cropped = await openCropper(src);
+    if (cropped) { image = cropped; setPreview(); }
+  };
   sheet.querySelector('#itDel')?.addEventListener('click', () => {
     sec.items.splice(ii, 1);
     sheet.close();

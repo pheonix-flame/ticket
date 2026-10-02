@@ -6,7 +6,7 @@ const view = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');
 const toastEl = document.getElementById('toast');
 
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '3.1.0';
 
 const state = {
   listTab: 'upcoming',
@@ -240,6 +240,10 @@ function getAppearance() {
   try { return localStorage.getItem('appearance') || 'system'; } catch (_) { return 'system'; }
 }
 
+function setThemeColor(color) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', color));
+}
+
 function applyAppearance(mode) {
   const root = document.documentElement;
   if (mode === 'light' || mode === 'dark') root.setAttribute('data-theme', mode);
@@ -257,6 +261,9 @@ function applyAppearance(mode) {
 async function route() {
   releaseURLs();
   clearTimers();
+  if (state.cleanup) { state.cleanup(); state.cleanup = null; }
+  document.body.classList.remove('tm-page');
+  applyAppearance(getAppearance());
   document.querySelectorAll('.sheet-wrap').forEach(s => (s.close ? s.close() : s.remove()));
   document.querySelector('.buybar')?.remove();
   const hash = location.hash.replace(/^#/, '') || '/';
@@ -608,3 +615,134 @@ window.addEventListener('DOMContentLoaded', () => {
   route();
   autoImportLegacyOnce();
 });
+
+/* ---------------- Image cropper ----------------
+   Every event image in the app is shown at 3:2, so uploads are framed here:
+   drag to move, pinch or use the slider to zoom. "Fit" shows the whole photo
+   (blurred edges fill the gaps); "Fill" covers the frame. */
+
+const IMAGE_ASPECT = 3 / 2;
+
+function openCropper(source, { aspect = IMAGE_ASPECT, outWidth = 1500 } = {}) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(source);
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); toast('Could not read that image'); resolve(null); };
+    img.onload = () => {
+      const wrap = document.createElement('div');
+      wrap.className = 'crop-view sheet-wrap';
+      wrap.innerHTML = `
+        <header class="crop-head">
+          <button class="nav-btn" data-cancel>Cancel</button>
+          <div class="title">Move and Scale</div>
+          <button class="nav-btn bold" data-done>Choose</button>
+        </header>
+        <div class="crop-stage">
+          <div class="crop-frame">
+            <img class="crop-bg" src="${url}" alt="">
+            <img class="crop-img" src="${url}" alt="" draggable="false">
+            <div class="crop-grid"></div>
+          </div>
+        </div>
+        <div class="crop-tools">
+          <input type="range" class="crop-zoom" min="0" max="1000" value="0" aria-label="Zoom">
+          <div class="crop-btns"><button data-fit>Fit</button><button data-fill>Fill</button></div>
+          <p>Drag to move · Pinch or slide to zoom</p>
+        </div>`;
+      document.body.appendChild(wrap);
+
+      const frame = wrap.querySelector('.crop-frame');
+      const pic = wrap.querySelector('.crop-img');
+      const zoom = wrap.querySelector('.crop-zoom');
+      const W = img.naturalWidth, H = img.naturalHeight;
+      let fw, fh, minS, coverS, maxS, s, x, y;
+
+      const layout = () => {
+        const maxW = Math.min(window.innerWidth - 32, 620);
+        const maxH = window.innerHeight * 0.55;
+        fw = Math.min(maxW, maxH * aspect);
+        fh = fw / aspect;
+        frame.style.width = `${fw}px`;
+        frame.style.height = `${fh}px`;
+        coverS = Math.max(fw / W, fh / H);
+        minS = Math.min(fw / W, fh / H);
+        maxS = coverS * 4;
+      };
+      const clamp = () => {
+        s = Math.min(maxS, Math.max(minS, s));
+        const iw = W * s, ih = H * s;
+        x = iw >= fw ? Math.min(0, Math.max(fw - iw, x)) : (fw - iw) / 2;
+        y = ih >= fh ? Math.min(0, Math.max(fh - ih, y)) : (fh - ih) / 2;
+      };
+      const paint = () => {
+        clamp();
+        pic.style.width = `${W * s}px`;
+        pic.style.height = `${H * s}px`;
+        pic.style.transform = `translate(${x}px, ${y}px)`;
+        zoom.value = String(Math.round(((s - minS) / (maxS - minS)) * 1000));
+      };
+      const zoomTo = (ns, cx = fw / 2, cy = fh / 2) => {
+        const k = ns / s;
+        x = cx - (cx - x) * k;
+        y = cy - (cy - y) * k;
+        s = ns;
+        paint();
+      };
+      layout();
+      s = coverS; x = (fw - W * s) / 2; y = (fh - H * s) / 2;
+      paint();
+
+      // drag + pinch
+      const pts = new Map();
+      let last = null;
+      frame.addEventListener('pointerdown', e => { frame.setPointerCapture(e.pointerId); pts.set(e.pointerId, e); last = null; });
+      frame.addEventListener('pointermove', e => {
+        if (!pts.has(e.pointerId)) return;
+        const prev = pts.get(e.pointerId);
+        pts.set(e.pointerId, e);
+        if (pts.size === 1) {
+          x += e.clientX - prev.clientX;
+          y += e.clientY - prev.clientY;
+          paint();
+        } else if (pts.size === 2) {
+          const [a, b] = [...pts.values()];
+          const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+          const r = frame.getBoundingClientRect();
+          const cx = (a.clientX + b.clientX) / 2 - r.left, cy = (a.clientY + b.clientY) / 2 - r.top;
+          if (last) zoomTo(s * (dist / last), cx, cy);
+          last = dist;
+        }
+      });
+      const up = e => { pts.delete(e.pointerId); last = null; };
+      frame.addEventListener('pointerup', up);
+      frame.addEventListener('pointercancel', up);
+      frame.addEventListener('wheel', e => { e.preventDefault(); zoomTo(s * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+      zoom.addEventListener('input', () => zoomTo(minS + (maxS - minS) * (zoom.value / 1000)));
+      wrap.querySelector('[data-fit]').onclick = () => zoomTo(minS);
+      wrap.querySelector('[data-fill]').onclick = () => zoomTo(coverS);
+
+      const finish = blob => { URL.revokeObjectURL(url); wrap.remove(); resolve(blob); };
+      wrap.querySelector('[data-cancel]').onclick = () => finish(null);
+      wrap.querySelector('[data-done]').onclick = () => {
+        const outW = outWidth, outH = Math.round(outWidth / aspect), k = outW / fw;
+        const c = document.createElement('canvas');
+        c.width = outW; c.height = outH;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#121212';
+        ctx.fillRect(0, 0, outW, outH);
+        if (W * s < fw - 1 || H * s < fh - 1) {
+          // fill the gaps with a blurred, darkened copy of the photo
+          const bs = Math.max(outW / W, outH / H);
+          if ('filter' in ctx) ctx.filter = 'blur(40px) brightness(0.6)';
+          ctx.drawImage(img, (outW - W * bs) / 2, (outH - H * bs) / 2, W * bs, H * bs);
+          ctx.filter = 'none';
+          if (!('filter' in ctx)) { ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, outW, outH); }
+        }
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, x * k, y * k, W * s * k, H * s * k);
+        c.toBlob(b => finish(b), 'image/jpeg', 0.88);
+      };
+    };
+    img.src = url;
+  });
+}

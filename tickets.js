@@ -109,19 +109,22 @@ async function renderMyEvents() {
 function nextEventHTML(ev) {
   const n = ticketCount(ev);
   const soon = msUntil(ev) > 0 && msUntil(ev) <= TEN_DAYS;
+  const rel = ['Today', 'Tonight', 'Tomorrow'].includes(relDay(ev)) ? `${relDay(ev)} • ` : '';
   return `
     <a class="next-card" href="#/event/${encodeURIComponent(ev.id)}">
-      ${coverHTML(ev.image)}
-      <div class="top">
-        <span class="tag solid">Next Event</span>
-        <span class="tag">${icon('ticket')}${plural(n, 'ticket')}</span>
+      <div class="img">
+        ${coverHTML(ev.image)}
+        <div class="top">
+          <span class="tag solid">Next Event</span>
+          <span class="tag">${icon('ticket')}x${n}</span>
+        </div>
       </div>
       <div class="meta">
-        <div class="d">${esc(['Today', 'Tonight', 'Tomorrow'].includes(relDay(ev)) ? `${relDay(ev)} • ` : '')}${esc(fmtShort(ev))}</div>
+        <div class="d">${esc(rel)}${esc(fmtShort(ev))}</div>
         <div class="t">${esc(ev.title || 'Untitled Event')}</div>
         ${venueLine(ev) ? `<div class="v">${esc(venueLine(ev))}</div>` : ''}
         ${soon ? countdownHTML(ev) : ''}
-        <span class="btn white block">View Tickets</span>
+        <span class="btn block">${BARCODE_ICON_SVG}View Tickets</span>
       </div>
     </a>`;
 }
@@ -153,126 +156,164 @@ function emptyEventsHTML(tab) {
     </div>`;
 }
 
-/* ---------------- Ticket screen ---------------- */
+/* ---------------- Ticket screen (Ticketmaster event / order page) ---------------- */
 
-function seatsHTML(ev, seat) {
+const TICKET_ICON_SVG = '<svg viewBox="0 0 24 24" class="i"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 12.5h8M8 16h5"/></svg>';
+const BARCODE_ICON_SVG = '<svg viewBox="0 0 24 24" class="i"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"/><path d="M7 8v8M9.5 8v8M12 8v8M14 8v8M17 8v8"/></svg>';
+
+function seatBlockHTML(ev, seat) {
   if (ev.isGA) {
-    return `<div class="t-seats ga"><div><small>${ev.section ? 'SECTION' : 'ADMISSION'}</small><b>${esc(ev.section || 'GENERAL ADMISSION')}</b></div></div>`;
+    return `
+      <div class="tm-seat ga">
+        <div><small>SECTION</small><b>${esc(ev.section || 'GA')}</b></div>
+        <div class="ga-label">GENERAL ADMISSION</div>
+      </div>`;
   }
   return `
-    <div class="t-seats">
-      <div><small>SEC</small><b>${esc(ev.section || '—')}</b></div>
-      <div><small>ROW</small><b>${esc(ev.row || '—')}</b></div>
-      <div><small>SEAT</small><b>${esc(seat || '—')}</b></div>
+    <div class="tm-seat">
+      <div><small>SECTION</small><b>${esc(ev.section || '—')}</b></div>
+      <div class="mid"><small>ROW</small><b>${esc(ev.row || '—')}</b></div>
+      <div class="end"><small>SEAT</small><b>${esc(seat || '—')}</b></div>
     </div>`;
 }
 
-function ticketHTML(ev, seat, i) {
+function ticketRowHTML(ev, seat, i) {
   return `
-    <article class="ticket" data-i="${i}">
-      <div class="t-type">
-        <span>${esc(ev.ticketType || 'Standard Admission')}</span>
-        ${ev.price ? `<span class="fv">Face Value ${esc(money(ev.price))}</span>` : ''}
-      </div>
-      ${seatsHTML(ev, seat)}
-      <div class="t-code">
-        <div class="barcode" data-bc="${i}"><div class="bc-svg">${barcodeSVG(barcodeSeed(ev, i, seat))}</div><div class="light"></div></div>
-        <div class="safetix">${icon('shield')}SafeTix™</div>
-        <p class="note">Screenshots won't get you in.</p>
-        ${'DeviceOrientationEvent' in window && typeof DeviceOrientationEvent.requestPermission === 'function'
-          ? '<div class="tilt-hint" data-tilt>Tap the barcode, then tilt your phone</div>' : ''}
-      </div>
-      ${ev.entry || ev.level ? `
-        <div class="t-foot">
-          ${ev.entry ? `<div>Entry<b>${esc(ev.entry)}</b></div>` : '<div></div>'}
-          ${ev.level ? `<div style="text-align:right">Level<b>${esc(ev.level)}</b></div>` : ''}
+    <div class="tm-tkt" data-i="${i}">
+      <div class="tm-type">${esc(ev.ticketType || 'Standard Admission')}</div>
+      ${seatBlockHTML(ev, seat)}
+      ${ev.listedPrice ? `
+        <div class="tm-listed">
+          <span class="sync">${icon('refresh')}</span>
+          <span class="txt">Listed for sale at: ${esc(money(ev.listedPrice))}</span>
+          <button data-edit-listing aria-label="Edit listing">${icon('edit')}</button>
+          <button class="trash" data-remove-listing aria-label="Remove listing">${icon('trash')}</button>
         </div>` : ''}
-      <div class="t-wallet"><button class="btn wallet" data-wallet>${icon('wallet')}Add to Apple Wallet</button></div>
-    </article>`;
+    </div>`;
 }
 
 async function renderTicket(id) {
-  setChrome({ tab: 'tickets', tabbarVisible: false, grouped: true });
+  setChrome({ tab: 'tickets', tabbarVisible: false });
+  document.body.classList.add('tm-page');
+  setThemeColor('#121212');
   const ev = await TicketDB.get(id);
   if (!ev) {
     view.innerHTML = `${navbarHTML({ back: '#/tickets', backLabel: 'My Events' })}<div class="empty"><h2>Event not found</h2><p>It may have been deleted.</p></div>`;
     return;
   }
   const seats = seatList(ev);
-  const soon = msUntil(ev) > 0 && msUntil(ev) <= TEN_DAYS;
-  const total = ev.price ? ev.price * seats.length : 0;
+  const n = seats.length;
+  const listed = !!ev.listedPrice;
+  const dateLine = (() => {
+    const d = parseLocal(ev.startAt);
+    if (!d) return ev.dateText || '';
+    const wd = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    const md = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
+    const t = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${wd} • ${md} • ${t}`;
+  })();
+  const venueShort = [ev.venue, ev.city].filter(Boolean).join(' - ');
 
   view.innerHTML = `
-    <div class="tix">
-      <div class="tix-backdrop">${coverHTML(ev.image)}</div>
-      ${navbarHTML({ clear: true, back: '#/tickets', backLabel: 'My Events', title: '', right: `<button class="nav-btn" id="moreBtn" aria-label="More">${icon('more')}</button>` })}
-      <div class="tix-head">
+    <div class="tm">
+      <div class="tm-hero">${coverHTML(ev.image)}</div>
+
+      <header class="tm-bar" id="tmBar">
+        <div class="tm-bar-bg">${coverHTML(ev.image)}</div>
+        <a class="tm-round" href="#/tickets" aria-label="Back">${icon('back')}</a>
+        <div class="tm-bar-title">
+          <b>${esc(ev.title || 'Untitled Event')}</b>
+          ${venueShort ? `<span>${esc(venueShort)}</span>` : ''}
+        </div>
+        <button class="tm-pill" id="helpBtn">Help</button>
+        <button class="tm-codebtn" id="barCodeBtn" aria-label="View tickets">${BARCODE_ICON_SVG}</button>
+      </header>
+
+      <div class="tm-info" id="tmInfo">
+        ${dateLine ? `<div class="tm-date">${esc(dateLine)}</div>` : ''}
         <h1>${esc(ev.title || 'Untitled Event')}</h1>
-        <p>${esc(fmtLong(ev))}</p>
-        ${venueLine(ev) ? `<p>${esc(venueLine(ev))}</p>` : ''}
-        ${soon ? `<span class="tag">${icon('clock')}<span data-starts>${esc(startsIn(ev))}</span></span>` : ''}
+        <div class="tm-venue">
+          <span>${esc(ev.venue || ev.city || '')}</span>
+          <span class="tm-count">${TICKET_ICON_SVG}x${n}</span>
+        </div>
       </div>
+      <button class="tm-view" id="viewBtn">${BARCODE_ICON_SVG}View Tickets</button>
 
-      <div class="tix-rail ${seats.length === 1 ? 'single' : ''}" id="rail">
-        ${seats.map((s, i) => ticketHTML(ev, s, i)).join('')}
-      </div>
-      ${seats.length > 1 ? `<div class="dots" id="dots">${seats.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+      <nav class="tm-tabs" id="tmTabs">
+        <button data-t="tickets" class="on">Tickets</button>
+        <button data-t="extras">Extras</button>
+      </nav>
 
-      <div class="tix-actions">
-        <button class="btn" id="transferBtn">${icon('transfer')}Transfer</button>
-        <button class="btn" id="sellBtn">${icon('tag')}Sell</button>
-      </div>
+      <section id="tabTickets">
+        <div class="tm-order">
+          <div>
+            <h2>Order #${esc(ev.orderNumber || '—')}</h2>
+            <small>x${n} Ticket${n === 1 ? '' : 's'}</small>
+          </div>
+          <button class="tm-kebab" id="moreBtn" aria-label="More">${icon('more')}</button>
+        </div>
+        <div class="tm-list">${seats.map((s, i) => ticketRowHTML(ev, s, i)).join('')}</div>
+      </section>
+
+      <section id="tabExtras" hidden>
+        <div class="tm-extras">
+          ${ev.policies ? cellHTML({ ic: 'bag', color: '#FF9500', label: 'Venue Policies', sub: 'Bag policy, prohibited items', id: 'polBtn' }) : ''}
+          ${ev.accessibility ? cellHTML({ ic: 'access', color: '#007AFF', label: 'Accessibility', id: 'accBtn' }) : ''}
+          ${cellHTML({ ic: 'receipt', color: '#34C759', label: 'Order Details', value: ev.orderNumber || '', id: 'orderBtn' })}
+          ${cellHTML({ ic: 'info', color: '#8E8E93', label: 'Ticket Details', value: plural(n, 'ticket'), id: 'detailsBtn' })}
+        </div>
+      </section>
 
       ${ev.venue || ev.city || ev.address ? `
-        <div class="group-title">Getting There</div>
-        ${venueMapBlockHTML(ev)}` : ''}
+        <h3 class="tm-h">More Options</h3>
+        <div class="tm-map">
+          <div class="venue-map" id="venueMap"><div class="map-msg">Loading map…</div></div>
+          <div class="tm-map-name">${esc(ev.venue || ev.city)}</div>
+          <a class="tm-dir" id="dirBtn" href="${esc(VenueMap.directionsURL(ev, null))}" target="_blank" rel="noopener">${icon('nav', 'sm')}Directions</a>
+        </div>` : ''}
 
-      <div class="group-title">Event Info</div>
-      <div class="group">
-        ${ev.policies ? cellHTML({ ic: 'bag', color: '#FF9500', label: 'Venue Policies', sub: 'Bag policy, prohibited items', id: 'polBtn' }) : ''}
-        ${ev.accessibility ? cellHTML({ ic: 'access', color: '#007AFF', label: 'Accessibility', id: 'accBtn' }) : ''}
-        ${cellHTML({ ic: 'receipt', color: '#34C759', label: 'Order Details', value: ev.orderNumber || '', id: 'orderBtn' })}
-        ${cellHTML({ ic: 'info', color: '#8E8E93', label: 'Ticket Details', value: plural(seats.length, 'ticket'), id: 'detailsBtn' })}
+      <div class="tm-dock">
+        <button disabled>${icon('upload')}<span>Upgrade</span></button>
+        <button id="transferBtn" ${listed ? 'disabled' : ''}><svg viewBox="0 0 24 24" class="i"><path d="M7 17 17 7M9 7h8v8"/></svg><span>Transfer</span></button>
+        <button id="sellBtn" ${listed ? 'disabled' : ''}>${icon('refresh')}<span>Sell</span></button>
       </div>
-      ${total ? `<div class="group-foot">Total paid ${esc(money(total))} for ${plural(seats.length, 'ticket')}.</div>` : ''}
     </div>`;
 
-  // carousel position
-  const rail = document.getElementById('rail');
-  const dots = document.getElementById('dots');
-  if (dots) {
-    rail.addEventListener('scroll', () => {
-      const center = rail.scrollLeft + rail.clientWidth / 2;
-      let best = 0, bestDist = Infinity;
-      rail.querySelectorAll('.ticket').forEach((c, i) => {
-        const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center);
-        if (d < bestDist) { bestDist = d; best = i; }
-      });
-      dots.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === best));
-    }, { passive: true });
-  }
+  // Compact header once the hero scrolls away (title + venue + barcode button).
+  const bar = document.getElementById('tmBar');
+  const onScroll = () => bar.classList.toggle('compact', window.scrollY > 190);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  state.cleanup = () => window.removeEventListener('scroll', onScroll);
+  onScroll();
 
-  // rotating barcodes (new code every 15 seconds)
-  let slot = Math.floor(Date.now() / 15000);
-  addTimer(setInterval(() => {
-    const now = Math.floor(Date.now() / 15000);
-    if (now !== slot) {
-      slot = now;
-      rail.querySelectorAll('[data-bc]').forEach(el => {
-        const i = +el.dataset.bc;
-        el.querySelector('.bc-svg').innerHTML = barcodeSVG(barcodeSeed(ev, i, seats[i]));
-      });
-    }
-    const starts = view.querySelector('[data-starts]');
-    if (starts) starts.textContent = startsIn(ev);
-  }, 1000));
+  view.querySelectorAll('#tmTabs button').forEach(b => b.onclick = () => {
+    view.querySelectorAll('#tmTabs button').forEach(x => x.classList.toggle('on', x === b));
+    document.getElementById('tabTickets').hidden = b.dataset.t !== 'tickets';
+    document.getElementById('tabExtras').hidden = b.dataset.t !== 'extras';
+  });
 
-  rail.querySelectorAll('.barcode, [data-tilt]').forEach(el => el.addEventListener('click', enableTilt));
-  if (state.tiltOn) attachTilt();
-  rail.querySelectorAll('[data-wallet]').forEach(b => b.onclick = () => toast('Apple Wallet passes aren\'t available for this event.'));
-  document.getElementById('transferBtn').onclick = () => toast('Ticket transfer isn\'t available for this event yet.');
-  document.getElementById('sellBtn').onclick = () => toast('Resale isn\'t available for this event yet.');
+  const openCodes = (start = 0) => openBarcodes(ev, seats, start);
+  document.getElementById('viewBtn').onclick = () => openCodes(0);
+  document.getElementById('barCodeBtn').onclick = () => openCodes(0);
+  view.querySelectorAll('.tm-tkt').forEach(t => t.addEventListener('click', e => {
+    if (e.target.closest('button')) return;
+    openCodes(+t.dataset.i);
+  }));
+  document.getElementById('helpBtn').onclick = () => openHelp(ev, seats);
   document.getElementById('moreBtn').onclick = () => openEventMenu(ev);
+  document.getElementById('transferBtn').onclick = () => toast('Ticket transfer isn\'t available for this event yet.');
+  document.getElementById('sellBtn').onclick = () => { location.hash = `#/edit/${encodeURIComponent(ev.id)}`; toast('Set a "Listed for sale" price to list these tickets'); };
+  view.querySelectorAll('[data-edit-listing]').forEach(b => b.onclick = () => { location.hash = `#/edit/${encodeURIComponent(ev.id)}`; });
+  view.querySelectorAll('[data-remove-listing]').forEach(b => b.onclick = () => {
+    actionSheet('Remove your resale listing?', [
+      { label: 'Remove Listing', danger: true, run: async () => {
+        const fresh = await TicketDB.get(ev.id);
+        await TicketDB.put({ ...fresh, listedPrice: '', updatedAt: Date.now() });
+        toast('Listing removed');
+        route();
+      } },
+    ]);
+  });
   document.getElementById('polBtn')?.addEventListener('click', () => textSheet('Venue Policies', ev.policies));
   document.getElementById('accBtn')?.addEventListener('click', () => textSheet('Accessibility', ev.accessibility));
   document.getElementById('orderBtn').onclick = () => openOrder(ev, seats);
@@ -285,6 +326,89 @@ async function renderTicket(id) {
       if (fresh) TicketDB.put({ ...fresh, lat: pos.lat, lng: pos.lng, geoLabel: pos.label || '' });
     }
   });
+}
+
+function openHelp(ev, seats) {
+  const sheet = openSheet(`
+    ${sheetHead('Help')}
+    <div class="group">
+      ${ev.policies ? cellHTML({ ic: 'bag', color: '#FF9500', label: 'Venue Policies', id: 'hPol' }) : ''}
+      ${ev.accessibility ? cellHTML({ ic: 'access', color: '#007AFF', label: 'Accessibility', id: 'hAcc' }) : ''}
+      ${cellHTML({ ic: 'receipt', color: '#34C759', label: 'Order Details', id: 'hOrder' })}
+      ${cellHTML({ ic: 'info', color: '#8E8E93', label: 'Ticket Details', id: 'hDet' })}
+    </div>`, 'dark-sheet');
+  sheet.querySelector('#hPol')?.addEventListener('click', () => { sheet.close(); textSheet('Venue Policies', ev.policies); });
+  sheet.querySelector('#hAcc')?.addEventListener('click', () => { sheet.close(); textSheet('Accessibility', ev.accessibility); });
+  sheet.querySelector('#hOrder').onclick = () => { sheet.close(); openOrder(ev, seats); };
+  sheet.querySelector('#hDet').onclick = () => { sheet.close(); openDetails(ev, seats); };
+}
+
+/* Full-screen barcode view ("View Tickets"): swipe between tickets. */
+function barcodeCardHTML(ev, seat, i) {
+  return `
+    <article class="bc-card" data-i="${i}">
+      <div class="bc-type">${esc(ev.ticketType || 'Standard Admission')}</div>
+      ${ev.isGA
+        ? `<div class="bc-seats ga"><div><small>SECTION</small><b>${esc(ev.section || 'GA')}</b></div><div class="ga-label">GENERAL ADMISSION</div></div>`
+        : `<div class="bc-seats"><div><small>SECTION</small><b>${esc(ev.section || '—')}</b></div><div class="mid"><small>ROW</small><b>${esc(ev.row || '—')}</b></div><div class="end"><small>SEAT</small><b>${esc(seat || '—')}</b></div></div>`}
+      <div class="bc-code">
+        <div class="barcode" data-bc="${i}"><div class="bc-svg">${barcodeSVG(barcodeSeed(ev, i, seat))}</div><div class="light"></div></div>
+        <div class="safetix">${icon('shield')}SafeTix™</div>
+        <p class="note">Screenshots won't get you in.</p>
+        ${'DeviceOrientationEvent' in window && typeof DeviceOrientationEvent.requestPermission === 'function'
+          ? '<div class="tilt-hint" data-tilt>Tap the barcode, then tilt your phone</div>' : ''}
+      </div>
+      ${ev.entry || ev.level || ev.price ? `
+        <div class="bc-foot">
+          ${ev.entry ? `<div><small>ENTRY</small><b>${esc(ev.entry)}</b></div>` : ''}
+          ${ev.level ? `<div><small>LEVEL</small><b>${esc(ev.level)}</b></div>` : ''}
+          ${ev.price ? `<div><small>FACE VALUE</small><b>${esc(money(ev.price))}</b></div>` : ''}
+        </div>` : ''}
+      <button class="btn wallet bc-wallet" data-wallet>${icon('wallet')}Add to Apple Wallet</button>
+    </article>`;
+}
+
+function openBarcodes(ev, seats, start) {
+  const wrap = document.createElement('div');
+  wrap.className = 'bc-view sheet-wrap';
+  wrap.innerHTML = `
+    <header class="bc-head">
+      <button class="tm-round" data-x aria-label="Close">${icon('close')}</button>
+      <div class="bc-title"><b>${esc(ev.title || 'Untitled Event')}</b><span>${esc(fmtShort(ev))}</span></div>
+      <span style="width:38px"></span>
+    </header>
+    <div class="bc-rail ${seats.length === 1 ? 'single' : ''}">${seats.map((s, i) => barcodeCardHTML(ev, s, i)).join('')}</div>
+    ${seats.length > 1 ? `<div class="bc-count">Ticket <b data-cur>${start + 1}</b> of ${seats.length}</div>` : ''}`;
+  const timers = [];
+  const close = () => { timers.forEach(clearInterval); wrap.remove(); };
+  wrap.close = close;
+  wrap.querySelector('[data-x]').onclick = close;
+  document.body.appendChild(wrap);
+
+  const rail = wrap.querySelector('.bc-rail');
+  const cards = rail.querySelectorAll('.bc-card');
+  if (start && cards[start]) rail.scrollLeft = cards[start].offsetLeft - (rail.clientWidth - cards[start].offsetWidth) / 2;
+  const cur = wrap.querySelector('[data-cur]');
+  if (cur) rail.addEventListener('scroll', () => {
+    const center = rail.scrollLeft + rail.clientWidth / 2;
+    let best = 0, dist = Infinity;
+    cards.forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center); if (d < dist) { dist = d; best = i; } });
+    cur.textContent = best + 1;
+  }, { passive: true });
+
+  let slot = Math.floor(Date.now() / 15000);
+  timers.push(setInterval(() => {
+    const now = Math.floor(Date.now() / 15000);
+    if (now === slot) return;
+    slot = now;
+    rail.querySelectorAll('[data-bc]').forEach(el => {
+      const i = +el.dataset.bc;
+      el.querySelector('.bc-svg').innerHTML = barcodeSVG(barcodeSeed(ev, i, seats[i]));
+    });
+  }, 1000));
+  rail.querySelectorAll('.barcode, [data-tilt]').forEach(el => el.addEventListener('click', enableTilt));
+  if (state.tiltOn) attachTilt();
+  rail.querySelectorAll('[data-wallet]').forEach(b => b.onclick = () => toast('Apple Wallet passes aren\'t available for this event.'));
 }
 
 function startsIn(ev) {
@@ -518,7 +642,8 @@ async function renderForm(id) {
         ${imageBlob ? `<img src="${objectURL(imageBlob)}" alt="">` : `<span class="ip-empty">${icon('image')}Add Photo</span>`}
         <input type="file" accept="image/*" id="f-image">
       </label>
-      <div class="group-foot" id="imgActions" ${imageBlob ? '' : 'hidden'}><button type="button" id="rmImg" style="color:var(--danger)">Remove photo</button></div>
+      <div class="group-foot img-actions" id="imgActions" ${imageBlob ? '' : 'hidden'}><button type="button" id="adjImg">Adjust photo</button><button type="button" id="rmImg" class="rm">Remove photo</button></div>
+      <div class="group-foot">Photos are shown at 3:2. After choosing one you can move and zoom it to fit.</div>
 
       <div class="group-title">Event</div>
       <div class="group">
@@ -554,9 +679,10 @@ async function renderForm(id) {
           ${f('orderNumber', 'Order number', { placeholder: '12-34567/LAX' })}
           ${f('price', 'Price per ticket ($)', { type: 'number', attrs: 'min="0" step="0.01" inputmode="decimal"' })}
         </div>
+        ${f('listedPrice', 'Listed for sale at ($)', { type: 'number', attrs: 'min="0" step="0.01" inputmode="decimal" placeholder="Leave blank if not listed"' })}
         ${ta('notes', 'Notes', 'Optional')}
       </div>
-      <div class="group-foot">The price shows on each ticket as its face value.</div>
+      <div class="group-foot">The price shows on each ticket as its face value. A "Listed for sale" price shows the resale listing on every ticket.</div>
 
       <div class="group-title">Event-Day Info</div>
       <div class="group">
@@ -598,13 +724,14 @@ async function renderForm(id) {
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files[0];
     if (!file) return;
-    try {
-      imageBlob = await compressImage(file);
-      showPreview(imageBlob);
-    } catch (e) {
-      toast(e.message);
-    }
     fileInput.value = '';
+    const cropped = await openCropper(file);
+    if (cropped) { imageBlob = cropped; showPreview(imageBlob); }
+  });
+  document.getElementById('adjImg').addEventListener('click', async () => {
+    if (!imageBlob) return;
+    const cropped = await openCropper(imageBlob);
+    if (cropped) { imageBlob = cropped; showPreview(imageBlob); }
   });
   document.getElementById('rmImg').addEventListener('click', () => { imageBlob = null; showPreview(null); });
 
@@ -634,6 +761,7 @@ async function renderForm(id) {
       level: val('level'),
       orderNumber: val('orderNumber'),
       price: val('price') ? Number(val('price')) : '',
+      listedPrice: val('listedPrice') ? Number(val('listedPrice')) : '',
       notes: val('notes'),
       policies: val('policies'),
       accessibility: val('accessibility'),
