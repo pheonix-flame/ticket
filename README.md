@@ -9,6 +9,7 @@ as many as the phone has room for.
 - **Watchlist**: events saved with the bookmark button
 - **My Tickets**: a large *Next Event* card with a live countdown in the last 10 days, then the rest of your events
 - **Ticket screen** (matches the Ticketmaster app's order page): event photo with the date, title, venue and ticket count card, **View Tickets**, Tickets / Extras tabs, the order number and a block per ticket (SECTION / ROW / SEAT, or GENERAL ADMISSION), an optional "Listed for sale at" line, a More Options venue map, and the floating Upgrade / Transfer / Sell bar. The header shrinks to the title, venue and a barcode button as you scroll.
+- **Transfer**: the same steps as Ticketmaster: select tickets (or Select All) → recipient name and email/mobile number with an optional message → sending → **Transfer Sent**. The sent seats are removed from the order, and the event is removed if no tickets are left. Past transfers are listed under **Extras → Transfer History**.
 - **View Tickets**: full-screen, swipeable barcodes that refresh every 15 seconds, with a moving light (it follows the phone's tilt on iPhone after you tap the barcode)
 - **Photos**: every event photo is shown at 3:2. After picking a photo you can drag and zoom it, or tap **Fit** to keep the whole photo (blurred edges fill the gaps). **Adjust photo** re-frames it later.
 - **Account**: Light / Dark / System appearance, home page editor, backup and restore
@@ -72,15 +73,24 @@ Event item fields:
 | `url`       | `"https://…"`                    | Optional "Find Tickets" link |
 | `about`     | `"Text…"`                        | About section on the event page |
 
-### Option 2: edit it in the app (no code)
+### Option 2: customize it in the app (no code)
 
-Account → **Customize Home** lets you add, edit, reorder and delete sections
-and events, including uploading pictures from the phone.
+Everyone starts with the default Home from `content/home.json`. In
+Account → **Customize Home**, each person can:
 
-- **Save** applies the changes on that phone only.
-- **Export home.json** downloads the file. Replace `content/home.json` with it
-  and push to publish the same Home for everyone.
-- **Reset to Published Home** discards the phone's custom version.
+- **Hide** or **Show** any default event. Default events can't be edited or
+  deleted, and new defaults you publish still appear.
+- **Add their own events** to a default section ("+ Add Event Here"), or create
+  **their own sections**. These can be edited, reordered and deleted, and they
+  show at the top of Home.
+
+Changes are saved on that phone only.
+
+- **Show All Default Events** un-hides everything.
+- **Export home.json** downloads Home as it looks on that phone. Replace
+  `content/home.json` with it and push to publish it for everyone.
+- **Remove All My Changes** deletes the phone's own events and sections and
+  shows every default event again.
 
 ## Maps
 

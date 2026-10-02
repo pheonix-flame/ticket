@@ -407,9 +407,9 @@ body.tm-page { --tm-card: #242424; --tm-info: #1E1E1E; --tm-blue: #0051D4; --tm-
 .bc-count b { color: #fff; }
 .btn.wallet { background: #000; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
 
-.dark-sheet { background: #1C1C1E; color: #fff; }
-.dark-sheet .sheet-head { background: #1C1C1E; }
-.dark-sheet .group { background: #2C2C2E; }
+:root .sheet.dark-sheet { background: #1C1C1E; color: #fff; }
+:root .sheet.dark-sheet .sheet-head { background: #1C1C1E; }
+:root .sheet.dark-sheet .group, :root .sheet.dark-sheet .sheet-text { background: #2C2C2E; color: #fff; }
 
 /* ---------- Image cropper ---------- */
 .sheet-wrap.crop-view { flex-direction: column; justify-content: flex-start; align-items: stretch; background: #000; color: #fff; z-index: 300; }
@@ -521,7 +521,6 @@ body:not(.grouped) .image-pick { background: var(--card-2); }
 /* ---------- Sheets ---------- */
 .sheet-wrap { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.4); animation: fade .2s; }
 .sheet { width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; background: var(--bg-grouped); border-radius: 14px 14px 0 0; padding-bottom: calc(18px + var(--safe-bottom)); animation: up .32s cubic-bezier(.2,.9,.25,1); }
-:root:not([data-theme="dark"]) .sheet { background: var(--bg-grouped); }
 .sheet .grab { width: 36px; height: 5px; margin: 6px auto 0; border-radius: 3px; background: var(--text-3); }
 .sheet-head { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 52px; padding: 0 8px; background: var(--bg-grouped); }
 .sheet-head h3 { margin: 0; font-size: 17px; font-weight: 600; text-align: center; }
@@ -599,3 +598,52 @@ body.no-tabbar .toast { bottom: calc(96px + var(--safe-bottom)); }
   body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   input, textarea { -webkit-user-select: text; user-select: text; }
 }
+
+/* ---------- Home editor: default (hide-only) items ---------- */
+.ed-sec-head.ro { flex-direction: column; gap: 2px; }
+.ed-sec-head.ro b { font-size: 17px; }
+.ed-sec-head.ro span { font-size: 13px; color: var(--text-2); }
+.ed-item.is-hidden .img, .ed-item.is-hidden .ed-item-title { opacity: .4; }
+.ed-item .mini .i { width: 16px; height: 16px; margin: 0 auto; }
+.eye { flex: none; height: 32px; min-width: 64px; padding: 0 12px; border-radius: 16px; background: var(--fill); color: var(--text); font-size: 14px; font-weight: 600; }
+.eye.off { background: var(--brand); color: #fff; }
+
+/* ---------- Transfer ---------- */
+.tx-sheet { min-height: 70vh; display: flex; flex-direction: column; }
+.tx { flex: 1; display: flex; flex-direction: column; }
+.tx-top { display: flex; align-items: center; justify-content: space-between; padding: 4px 20px 12px; font-size: 14px; color: #A3A3A3; }
+.tx-top button { color: #6EA2FF; font-size: 15px; font-weight: 600; }
+.tx-list { display: grid; gap: 12px; padding: 0 16px; }
+.tx-tkt { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; background: #242424; border: 2px solid transparent; text-align: left; color: #fff; }
+.tx-tkt.on { border-color: #0051D4; }
+.tx-check { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #6B6B6B; display: flex; align-items: center; justify-content: center; }
+.tx-tkt.on .tx-check { background: #0051D4; border-color: #0051D4; }
+.tx-check svg, .tx-ok svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.tx-info { flex: 1; min-width: 0; }
+.tx-info small { display: block; font-size: 14px; font-weight: 700; }
+.tx-seat { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.tx-seat em { display: block; font-style: normal; font-size: 12px; font-weight: 700; letter-spacing: .3px; color: #A3A3A3; }
+.tx-seat b { display: block; margin-top: 2px; font-size: 17px; }
+.tx-seat .ga { align-self: flex-end; font-size: 14px; font-weight: 700; }
+.tx-foot { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding: 14px 16px calc(14px + var(--safe-bottom)); background: #1C1C1E; border-top: 1px solid #333; font-size: 15px; }
+.tx-foot.solo { display: block; border-top: 0; padding-top: 18px; }
+.tx-go { height: 46px; border-radius: 4px; background: #0051D4; }
+.tx-go:disabled { opacity: .4; }
+.tx-go .i { width: 16px; height: 16px; stroke-width: 2.6; }
+.tx-foot .btn.block { border-radius: 4px; background: #0051D4; }
+.tx-status { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 48px 28px calc(28px + var(--safe-bottom)); text-align: center; }
+.tx-status h2 { margin: 18px 0 6px; font-size: 24px; font-weight: 800; }
+.tx-status p { margin: 0; font-size: 16px; line-height: 1.45; color: #D0D0D0; }
+.tx-status p.sub { margin-top: 8px; font-size: 14px; color: #A3A3A3; }
+.tx-status .btn { margin-top: 28px; border-radius: 4px; background: #0051D4; }
+.tx-spin { width: 54px; height: 54px; border-radius: 50%; border: 4px solid #333; border-top-color: #0051D4; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tx-ok { width: 72px; height: 72px; border-radius: 50%; background: #1DB954; display: flex; align-items: center; justify-content: center; animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
+.tx-ok svg { width: 38px; height: 38px; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.dark-sheet .fcell input, .dark-sheet .fcell textarea { color: #fff; }
+.dark-sheet .fcell label, .dark-sheet .group-title, .dark-sheet .group-foot, .dark-sheet .cell .lbl small { color: #A3A3A3; }
+.dark-sheet .cell { color: #fff; }
+.dark-sheet .cell + .cell::before, .dark-sheet .fcell + .fcell::before, .dark-sheet .frow .fcell + .fcell::before, .dark-sheet .fcell + .frow::before, .dark-sheet .frow + .fcell::before { border-color: #3A3A3A; }
+.dark-sheet .nav-btn { color: #6EA2FF; }
+.dark-sheet .grab { background: #555; }

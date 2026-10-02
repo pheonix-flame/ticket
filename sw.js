@@ -1,7 +1,7 @@
 // Offline support. Tickets live in IndexedDB; this caches the app itself,
 // the home page content, the map library and map tiles you've viewed.
 // Bump VERSION whenever you deploy changes so installed apps show "Refresh".
-const VERSION = '3.1.0';
+const VERSION = '3.2.0';
 const SHELL_CACHE = `tm-shell-${VERSION}`;
 const RUNTIME_CACHE = 'tm-runtime';
 const TILE_CACHE = 'tm-tiles';

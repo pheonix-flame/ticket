@@ -13,7 +13,7 @@ const homeState = {
   tab: 'foryou',
   category: 'All',
   draft: null,
-  draftSource: null,
+  published: null,
 };
 
 const CATEGORY_STYLE = {
@@ -24,16 +24,70 @@ const CATEGORY_STYLE = {
   'Family': ['#0891B2', 'family'],
 };
 
-async function loadHome() {
-  const local = await TicketDB.getSetting(HOME_OVERRIDE_KEY).catch(() => undefined);
-  if (local) return { data: local, source: 'device' };
+// Home = the default content (content/home.json) + this device's changes.
+// Default events can be hidden but never deleted; the user's own events and
+// sections are stored separately in 'homeCustom':
+//   { hidden: [defaultItemId], added: { [defaultSectionId]: [items] }, sections: [own sections] }
+const HOME_CUSTOM_KEY = 'homeCustom';
+
+async function loadPublishedHome() {
   try {
     const res = await fetch(HOME_URL, { cache: 'no-cache' });
     if (!res.ok) throw new Error(res.status);
-    return { data: await res.json(), source: 'published' };
+    return await res.json();
   } catch (_) {
-    return { data: { location: '', categories: ['All'], sections: [] }, source: 'offline' };
+    return { location: '', categories: ['All'], sections: [] };
   }
+}
+
+function emptyCustom() {
+  return { hidden: [], added: {}, sections: [] };
+}
+
+async function getHomeCustom(published) {
+  let custom = await TicketDB.getSetting(HOME_CUSTOM_KEY).catch(() => undefined);
+  if (custom) return { ...emptyCustom(), ...custom };
+  custom = emptyCustom();
+  // Convert a home page saved by the previous editor (a full copy) into changes.
+  const old = await TicketDB.getSetting(HOME_OVERRIDE_KEY).catch(() => undefined);
+  if (old && published) {
+    const pubSecs = new Map((published.sections || []).map(s => [s.id, s]));
+    const pubIds = new Set(allHomeItems(published).map(i => i.id));
+    const keptIds = new Set();
+    for (const sec of old.sections || []) {
+      const mine = (sec.items || []).filter(i => !pubIds.has(i.id));
+      (sec.items || []).forEach(i => keptIds.add(i.id));
+      if (!mine.length) continue;
+      if (pubSecs.has(sec.id)) custom.added[sec.id] = mine;
+      else custom.sections.push({ ...sec, items: mine });
+    }
+    custom.hidden = [...pubIds].filter(id => !keptIds.has(id));
+    await TicketDB.setSetting(HOME_CUSTOM_KEY, custom);
+    await TicketDB.removeSetting(HOME_OVERRIDE_KEY);
+  }
+  return custom;
+}
+
+function mergeHome(published, custom) {
+  const hidden = new Set(custom.hidden || []);
+  const added = custom.added || {};
+  return {
+    ...published,
+    sections: [
+      // the user's own sections first, so their events are easy to find
+      ...(custom.sections || []).map(s => ({ ...s, own: true })),
+      ...(published.sections || []).map(s => ({
+        ...s,
+        items: [...(s.items || []).filter(i => !hidden.has(i.id)), ...(added[s.id] || [])],
+      })),
+    ],
+  };
+}
+
+async function loadHome() {
+  const published = await loadPublishedHome();
+  const custom = await getHomeCustom(published);
+  return { data: mergeHome(published, custom), published, custom };
 }
 
 function allHomeItems(data) {
@@ -414,23 +468,44 @@ async function renderExplore(id) {
   mountVenueMap(item, null);
 }
 
-/* ---------------- Home page editor ---------------- */
+/* ---------------- Home page editor ----------------
+   Default events (from content/home.json) can be hidden or shown again but
+   not edited or deleted. Users add their own events to any section, or
+   create their own sections. */
 
-function cloneHome(data) {
+function cloneData(data) {
   // structuredClone keeps Blobs intact; fall back for older browsers.
   if (window.structuredClone) return structuredClone(data);
-  return { ...data, sections: (data.sections || []).map(s => ({ ...s, items: (s.items || []).map(i => ({ ...i })) })) };
+  return JSON.parse(JSON.stringify(data));
+}
+
+function editorItemHTML(it, { key, hidden = false, mine = false, canMove = false }) {
+  return `
+    <div class="ed-item ${hidden ? 'is-hidden' : ''}">
+      <div class="img">${coverHTML(it.image, it.color)}</div>
+      ${mine
+        ? `<button class="ed-item-title" data-edit="${key}">${esc(it.title || 'Untitled')}<small>${esc(['Added by you', it.startAt ? fmtShort(it) : ''].filter(Boolean).join(' · '))}</small></button>`
+        : `<div class="ed-item-title">${esc(it.title || 'Untitled')}<small>${hidden ? 'Hidden' : 'Default'}${it.startAt ? ` · ${esc(fmtShort(it))}` : ''}</small></div>`}
+      ${mine && canMove ? `<button class="mini" data-move="${key}:-1" aria-label="Move up">↑</button><button class="mini" data-move="${key}:1" aria-label="Move down">↓</button>` : ''}
+      ${mine ? `<button class="mini" data-edit="${key}" aria-label="Edit">${icon('edit', 'sm')}</button>` : `<button class="eye ${hidden ? 'off' : ''}" data-toggle="${esc(it.id)}">${hidden ? 'Show' : 'Hide'}</button>`}
+    </div>`;
 }
 
 async function renderHomeEditor() {
   setChrome({ tabbarVisible: false, grouped: true });
   if (!homeState.draft) {
-    const { data, source } = await loadHome();
-    homeState.draft = cloneHome(data);
-    homeState.draftSource = source;
+    const { published, custom } = await loadHome();
+    homeState.published = published;
+    homeState.draft = cloneData(custom);
   }
+  const pub = homeState.published;
   const d = homeState.draft;
   d.sections = d.sections || [];
+  d.added = d.added || {};
+  d.hidden = d.hidden || [];
+  const hidden = new Set(d.hidden);
+  const tabName = k => (HOME_TABS.find(([x]) => x === k) || HOME_TABS[0])[1];
+  const styleName = s => ({ hero: 'Banners', list: 'List' }[s] || 'Cards');
 
   view.innerHTML = `
     <header class="navbar">
@@ -439,17 +514,10 @@ async function renderHomeEditor() {
       <div class="right"><button class="nav-btn bold" id="edSave">Save</button></div>
     </header>
     <div class="form">
-      <div class="hint-box">${homeState.draftSource === 'device'
-        ? 'You\'re editing the Home page saved on <b>this device</b>.'
-        : 'Saving applies to <b>this device</b>. To update Home for everyone, tap <b>Export home.json</b> and replace <code>content/home.json</code> on your site.'}</div>
+      <div class="hint-box">The default events come with the app. You can <b>hide</b> them, but not delete them. Events and sections you add are saved on this phone.</div>
 
-      <div class="group-title">General</div>
-      <div class="group">
-        <div class="fcell"><label for="ed-loc">Default location</label><input id="ed-loc" value="${esc(d.location || '')}" placeholder="Los Angeles, CA"></div>
-        <div class="fcell"><label for="ed-cats">Categories (comma separated)</label><input id="ed-cats" value="${esc((d.categories || []).join(', '))}" placeholder="All, Concerts, Sports"></div>
-      </div>
-
-      <div class="group-title">Sections</div>
+      <div class="group-title">Your Sections</div>
+      ${d.sections.length ? '' : '<div class="group-foot" style="margin-top:0">You haven\'t added any sections yet.</div>'}
       ${d.sections.map((s, si) => `
         <div class="ed-sec">
           <div class="ed-sec-head">
@@ -463,34 +531,49 @@ async function renderHomeEditor() {
               <option value="list" ${s.style === 'list' ? 'selected' : ''}>List</option>
             </select>
           </div>
-          ${(s.items || []).map((it, ii) => `
-            <div class="ed-item">
-              <div class="img">${coverHTML(it.image, it.color)}</div>
-              <button class="ed-item-title" data-edit="${si}:${ii}">${esc(it.title || 'Untitled')}<small>${esc([it.category, it.startAt ? fmtShort(it) : ''].filter(Boolean).join(' · '))}</small></button>
-              <button class="mini" data-move="${si}:${ii}:-1" aria-label="Move up">↑</button>
-              <button class="mini" data-move="${si}:${ii}:1" aria-label="Move down">↓</button>
-            </div>`).join('')}
+          ${(s.items || []).map((it, ii) => editorItemHTML(it, { key: `own:${si}:${ii}`, mine: true, canMove: true })).join('')}
           <div class="ed-actions">
-            <button data-add-item="${si}">+ Add Event</button>
+            <button data-add="own:${si}">+ Add Event</button>
             <button data-sec-move="${si}:-1">Move Up</button>
             <button data-sec-move="${si}:1">Move Down</button>
             <button class="rm" data-sec-del="${si}">Delete</button>
           </div>
         </div>`).join('')}
+      <div class="group" style="margin-top:12px">
+        <button class="cell noicon link" id="addSection"><span class="lbl">Add Section</span></button>
+      </div>
+
+      <div class="group-title">Default Sections</div>
+      ${(pub.sections || []).map(s => `
+        <div class="ed-sec">
+          <div class="ed-sec-head ro">
+            <b>${esc(s.title || (s.style === 'hero' ? 'Featured banners' : 'Section'))}</b>
+            <span>${tabName(s.tab || 'foryou')} · ${styleName(s.style)}</span>
+          </div>
+          ${(s.items || []).map(it => editorItemHTML(it, { hidden: hidden.has(it.id) })).join('')}
+          ${(d.added[s.id] || []).map((it, ii) => editorItemHTML(it, { key: `add:${s.id}:${ii}`, mine: true, canMove: true })).join('')}
+          <div class="ed-actions"><button data-add="add:${esc(s.id)}">+ Add Event Here</button></div>
+        </div>`).join('')}
 
       <div class="group-title"></div>
       <div class="group">
-        <button class="cell noicon link" id="addSection"><span class="lbl">Add Section</span></button>
+        <button class="cell noicon link" id="showAll"><span class="lbl">Show All Default Events</span></button>
         <button class="cell noicon link" id="exportHome"><span class="lbl">Export home.json</span></button>
       </div>
+      <div class="group-foot">Export saves the Home page as you see it, so you can publish it for everyone by replacing <code>content/home.json</code>.</div>
       <div class="group-title"></div>
-      <div class="group"><button class="cell noicon danger center" id="resetHome">Reset to Published Home</button></div>
+      <div class="group"><button class="cell noicon danger center" id="resetHome">Remove All My Changes</button></div>
     </div>`;
 
+  // key → { list, index } for the user's own items
+  const resolve = key => {
+    const [kind, a, b] = key.split(':');
+    if (kind === 'own') return { list: (d.sections[+a].items = d.sections[+a].items || []), index: b === undefined ? -1 : +b };
+    const secId = a;
+    d.added[secId] = d.added[secId] || [];
+    return { list: d.added[secId], index: b === undefined ? -1 : +b, secId };
+  };
   const syncFields = () => {
-    d.location = document.getElementById('ed-loc').value.trim();
-    const cats = document.getElementById('ed-cats').value.split(',').map(s => s.trim()).filter(Boolean);
-    d.categories = cats.length ? (cats.includes('All') ? cats : ['All', ...cats]) : ['All'];
     view.querySelectorAll('.ed-sec-title').forEach(i => { d.sections[+i.dataset.si].title = i.value.trim(); });
     view.querySelectorAll('.ed-sec-style').forEach(i => { d.sections[+i.dataset.si].style = i.value; });
     view.querySelectorAll('.ed-sec-tab').forEach(i => { d.sections[+i.dataset.si].tab = i.value; });
@@ -501,21 +584,28 @@ async function renderHomeEditor() {
     if (j < 0 || j >= arr.length) return;
     [arr[i], arr[j]] = [arr[j], arr[i]];
   };
+  const cats = (pub.categories || []).filter(c => c !== 'All');
 
   document.getElementById('edCancel').onclick = () => { homeState.draft = null; location.hash = '#/account'; };
   document.getElementById('edSave').onclick = async () => {
     syncFields();
-    d.updated = new Date().toISOString().slice(0, 10);
-    await TicketDB.setSetting(HOME_OVERRIDE_KEY, d);
+    for (const k of Object.keys(d.added)) if (!d.added[k].length) delete d.added[k];
+    await TicketDB.setSetting(HOME_CUSTOM_KEY, d);
     homeState.draft = null;
     toast('Home saved');
     location.hash = '#/';
   };
   document.getElementById('addSection').onclick = () => {
     syncFields();
-    d.sections.push({ id: uid(), title: 'New Section', tab: 'foryou', style: 'cards', items: [] });
+    d.sections.push({ id: uid(), title: 'My Events', tab: 'foryou', style: 'cards', items: [] });
     rerender();
   };
+  view.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => {
+    syncFields();
+    const id = b.dataset.toggle;
+    d.hidden = d.hidden.includes(id) ? d.hidden.filter(x => x !== id) : [...d.hidden, id];
+    rerender();
+  });
   view.querySelectorAll('[data-sec-del]').forEach(b => b.onclick = () => {
     const si = +b.dataset.secDel;
     syncFields();
@@ -530,25 +620,29 @@ async function renderHomeEditor() {
     rerender();
   });
   view.querySelectorAll('[data-move]').forEach(b => b.onclick = () => {
-    const [si, ii, dir] = b.dataset.move.split(':').map(Number);
+    const parts = b.dataset.move.split(':');
+    const dir = +parts.pop();
     syncFields();
-    swap(d.sections[si].items, ii, dir);
+    const { list, index } = resolve(parts.join(':'));
+    swap(list, index, dir);
     rerender();
   });
-  view.querySelectorAll('[data-add-item]').forEach(b => b.onclick = () => {
+  view.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
     syncFields();
-    openItemEditor(d, +b.dataset.addItem, -1, rerender);
+    const { list } = resolve(b.dataset.add);
+    openItemEditor(list, -1, cats, rerender);
   });
   view.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
-    const [si, ii] = b.dataset.edit.split(':').map(Number);
     syncFields();
-    openItemEditor(d, si, ii, rerender);
+    const { list, index } = resolve(b.dataset.edit);
+    openItemEditor(list, index, cats, rerender);
   });
-  document.getElementById('exportHome').onclick = async () => { syncFields(); await exportHomeJSON(d); };
+  document.getElementById('showAll').onclick = () => { syncFields(); d.hidden = []; rerender(); };
+  document.getElementById('exportHome').onclick = async () => { syncFields(); await exportHomeJSON(mergeHome(pub, d)); };
   document.getElementById('resetHome').onclick = () => {
-    actionSheet('Discard this device\'s custom Home and show the published one?', [
-      { label: 'Reset Home', danger: true, run: async () => {
-        await TicketDB.removeSetting(HOME_OVERRIDE_KEY);
+    actionSheet('Remove your events and sections, and show every default event again?', [
+      { label: 'Remove All My Changes', danger: true, run: async () => {
+        await TicketDB.removeSetting(HOME_CUSTOM_KEY);
         homeState.draft = null;
         toast('Home reset');
         location.hash = '#/';
@@ -557,13 +651,11 @@ async function renderHomeEditor() {
   };
 }
 
-function openItemEditor(d, si, ii, done) {
-  const sec = d.sections[si];
-  sec.items = sec.items || [];
-  const isNew = ii < 0;
-  const it = isNew ? { id: uid() } : { ...sec.items[ii] };
+function openItemEditor(list, index, cats, done) {
+  const isNew = index < 0;
+  const it = isNew ? { id: uid(), color: '#024DDF' } : { ...list[index] };
+  if (!it.color) it.color = '#024DDF';
   let image = it.image || null;
-  const cats = (d.categories || []).filter(c => c !== 'All');
 
   const field = (name, label, type = 'text', extra = '') => `
     <div class="fcell"><label for="it-${name}">${label}</label>
@@ -593,7 +685,7 @@ function openItemEditor(d, si, ii, done) {
       <div class="fcell"><label for="it-about">About</label><textarea id="it-about">${esc(it.about || '')}</textarea></div>
       ${field('color', 'Colour when there is no photo', 'color')}
     </div>
-    ${isNew ? '' : '<div class="group-title"></div><div class="group"><button class="cell noicon danger center" id="itDel" type="button">Remove From Home</button></div>'}`);
+    ${isNew ? '' : '<div class="group-title"></div><div class="group"><button class="cell noicon danger center" id="itDel" type="button">Delete Event</button></div>'}`);
 
   const pick = sheet.querySelector('#itPick');
   const setPreview = () => {
@@ -610,7 +702,6 @@ function openItemEditor(d, si, ii, done) {
   sheet.querySelector('#itRmImg').onclick = () => { image = null; setPreview(); };
   sheet.querySelector('#itAdj').onclick = async () => {
     if (!image) return toast('Add a photo first');
-    // published images are URLs; fetch them so they can be re-framed
     let src = image instanceof Blob ? image : null;
     if (!src) { try { src = await (await fetch(image)).blob(); } catch (_) {} }
     if (!src) return toast('Could not load that photo');
@@ -618,7 +709,7 @@ function openItemEditor(d, si, ii, done) {
     if (cropped) { image = cropped; setPreview(); }
   };
   sheet.querySelector('#itDel')?.addEventListener('click', () => {
-    sec.items.splice(ii, 1);
+    list.splice(index, 1);
     sheet.close();
     done();
   });
@@ -632,15 +723,16 @@ function openItemEditor(d, si, ii, done) {
       url: v('url'), about: v('about'), color: v('color'), image,
     });
     if ([it.venue, it.city, it.address].join('|') !== prevPlace) { delete it.lat; delete it.lng; }
-    if (isNew) sec.items.push(it); else sec.items[ii] = it;
+    if (isNew) list.push(it); else list[index] = it;
     sheet.close();
     done();
   };
 }
 
-async function exportHomeJSON(d) {
-  const out = cloneHome(d);
+async function exportHomeJSON(data) {
+  const out = cloneData(data);
   for (const sec of out.sections || []) {
+    delete sec.own;
     for (const it of sec.items || []) {
       if (it.image instanceof Blob) it.image = await blobToDataURL(it.image);
     }

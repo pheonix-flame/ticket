@@ -261,6 +261,7 @@ async function renderTicket(id) {
           ${ev.accessibility ? cellHTML({ ic: 'access', color: '#007AFF', label: 'Accessibility', id: 'accBtn' }) : ''}
           ${cellHTML({ ic: 'receipt', color: '#34C759', label: 'Order Details', value: ev.orderNumber || '', id: 'orderBtn' })}
           ${cellHTML({ ic: 'info', color: '#8E8E93', label: 'Ticket Details', value: plural(n, 'ticket'), id: 'detailsBtn' })}
+          ${(ev.transfers || []).length ? cellHTML({ ic: 'transfer', color: '#5856D6', label: 'Transfer History', value: plural(ev.transfers.reduce((a, t) => a + t.count, 0), 'ticket') + ' sent', id: 'histBtn' }) : ''}
         </div>
       </section>
 
@@ -301,7 +302,7 @@ async function renderTicket(id) {
   }));
   document.getElementById('helpBtn').onclick = () => openHelp(ev, seats);
   document.getElementById('moreBtn').onclick = () => openEventMenu(ev);
-  document.getElementById('transferBtn').onclick = () => toast('Ticket transfer isn\'t available for this event yet.');
+  document.getElementById('transferBtn').onclick = () => openTransfer(ev);
   document.getElementById('sellBtn').onclick = () => { location.hash = `#/edit/${encodeURIComponent(ev.id)}`; toast('Set a "Listed for sale" price to list these tickets'); };
   view.querySelectorAll('[data-edit-listing]').forEach(b => b.onclick = () => { location.hash = `#/edit/${encodeURIComponent(ev.id)}`; });
   view.querySelectorAll('[data-remove-listing]').forEach(b => b.onclick = () => {
@@ -318,6 +319,7 @@ async function renderTicket(id) {
   document.getElementById('accBtn')?.addEventListener('click', () => textSheet('Accessibility', ev.accessibility));
   document.getElementById('orderBtn').onclick = () => openOrder(ev, seats);
   document.getElementById('detailsBtn').onclick = () => openDetails(ev, seats);
+  document.getElementById('histBtn')?.addEventListener('click', () => openTransferHistory(ev));
 
   mountVenueMap(ev, async pos => {
     // Remember coordinates so the map shows instantly (and offline) next time.
@@ -341,6 +343,179 @@ function openHelp(ev, seats) {
   sheet.querySelector('#hAcc')?.addEventListener('click', () => { sheet.close(); textSheet('Accessibility', ev.accessibility); });
   sheet.querySelector('#hOrder').onclick = () => { sheet.close(); openOrder(ev, seats); };
   sheet.querySelector('#hDet').onclick = () => { sheet.close(); openDetails(ev, seats); };
+}
+
+/* ---------------- Transfer (same steps as Ticketmaster) ----------------
+   1. Select tickets  2. Recipient details  3. Sending…  4. Transfer sent.
+   On success the transferred seats are removed from this order; if none
+   are left the event is removed from My Tickets. */
+
+function seatLabel(ev, seat) {
+  if (ev.isGA) return `Sec ${ev.section || 'GA'} · General Admission`;
+  return [ev.section && `Sec ${ev.section}`, ev.row && `Row ${ev.row}`, seat && `Seat ${seat}`].filter(Boolean).join(', ') || 'Ticket';
+}
+
+function openTransfer(ev) {
+  const seats = seatList(ev);
+  const chosen = new Set(seats.length === 1 ? [0] : []);
+  const who = { first: '', last: '', contact: '', note: '' };
+  const sheet = openSheet('<div class="tx"></div>', 'dark-sheet tx-sheet');
+  const box = sheet.querySelector('.tx');
+
+  const head = (title, back) => `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div>${back ? `<button class="nav-btn" data-back>${icon('back', 'chev')}Back</button>` : '<button class="nav-btn" data-x>Cancel</button>'}</div>
+      <h3>${title}</h3>
+      <div class="right"></div>
+    </div>`;
+  const bind = () => {
+    box.querySelector('[data-x]')?.addEventListener('click', () => sheet.close());
+  };
+
+  const stepSelect = () => {
+    box.innerHTML = `
+      ${head('Select Tickets to Transfer')}
+      <div class="tx-top">
+        <span>${seats.length} ticket${seats.length === 1 ? '' : 's'} in this order</span>
+        <button data-all>${chosen.size === seats.length ? 'Deselect All' : 'Select All'}</button>
+      </div>
+      <div class="tx-list">
+        ${seats.map((s, i) => `
+          <button class="tx-tkt ${chosen.has(i) ? 'on' : ''}" data-i="${i}">
+            <span class="tx-check">${chosen.has(i) ? '<svg viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9"/></svg>' : ''}</span>
+            <span class="tx-info">
+              <small>${esc(ev.ticketType || 'Standard Admission')}</small>
+              ${ev.isGA
+                ? `<span class="tx-seat"><span><em>SECTION</em><b>${esc(ev.section || 'GA')}</b></span><span class="ga">GENERAL ADMISSION</span></span>`
+                : `<span class="tx-seat"><span><em>SEC</em><b>${esc(ev.section || '—')}</b></span><span><em>ROW</em><b>${esc(ev.row || '—')}</b></span><span><em>SEAT</em><b>${esc(s || '—')}</b></span></span>`}
+            </span>
+          </button>`).join('')}
+      </div>
+      <div class="tx-foot">
+        <span><b>${chosen.size}</b> Selected</span>
+        <button class="btn tx-go" data-next ${chosen.size ? '' : 'disabled'}>Transfer To ${icon('chev', 'sm')}</button>
+      </div>`;
+    bind();
+    box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i;
+      chosen.has(i) ? chosen.delete(i) : chosen.add(i);
+      stepSelect();
+    });
+    box.querySelector('[data-all]').onclick = () => {
+      if (chosen.size === seats.length) chosen.clear(); else seats.forEach((_, i) => chosen.add(i));
+      stepSelect();
+    };
+    box.querySelector('[data-next]').onclick = () => { if (chosen.size) stepRecipient(); };
+  };
+
+  const stepRecipient = () => {
+    const n = chosen.size;
+    const list = [...chosen].sort((a, b) => a - b).map(i => seatLabel(ev, seats[i]));
+    box.innerHTML = `
+      ${head('Transfer To', true)}
+      <div class="group-title">Recipient</div>
+      <div class="group">
+        <div class="frow">
+          <div class="fcell"><label for="tx-first">First Name</label><input id="tx-first" value="${esc(who.first)}" autocomplete="given-name"></div>
+          <div class="fcell"><label for="tx-last">Last Name</label><input id="tx-last" value="${esc(who.last)}" autocomplete="family-name"></div>
+        </div>
+        <div class="fcell"><label for="tx-contact">Email or Mobile Number</label><input id="tx-contact" value="${esc(who.contact)}" inputmode="email" autocomplete="email"></div>
+        <div class="fcell"><label for="tx-note">Message (optional)</label><textarea id="tx-note" placeholder="Add a note for the recipient">${esc(who.note)}</textarea></div>
+      </div>
+      <div class="group-title">You're Transferring</div>
+      <div class="group">
+        <div class="cell noicon"><span class="lbl">${esc(ev.title || 'Event')}<small>${esc(fmtShort(ev))}</small></span></div>
+        ${list.map(l => `<div class="cell noicon"><span class="lbl">${esc(l)}</span></div>`).join('')}
+      </div>
+      <div class="group-foot">After you transfer, these tickets are removed from your account and only the recipient can use them.</div>
+      <div class="tx-foot solo"><button class="btn block" data-send>Transfer ${n} Ticket${n === 1 ? '' : 's'}</button></div>`;
+    bind();
+    const read = () => {
+      who.first = box.querySelector('#tx-first').value.trim();
+      who.last = box.querySelector('#tx-last').value.trim();
+      who.contact = box.querySelector('#tx-contact').value.trim();
+      who.note = box.querySelector('#tx-note').value.trim();
+    };
+    box.querySelector('[data-back]').onclick = () => { read(); stepSelect(); };
+    box.querySelector('[data-send]').onclick = () => {
+      read();
+      const email = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(who.contact);
+      const phone = who.contact.replace(/[^\d]/g, '').length >= 7 && /^[+\d\s().-]+$/.test(who.contact);
+      if (!who.first || !who.last) return toast('Enter the recipient\'s first and last name');
+      if (!email && !phone) return toast('Enter a valid email address or mobile number');
+      stepSending();
+    };
+    setTimeout(() => box.querySelector('#tx-first')?.focus(), 250);
+  };
+
+  const stepSending = async () => {
+    const n = chosen.size;
+    box.innerHTML = `
+      <div class="tx-status">
+        <div class="tx-spin"></div>
+        <h2>Sending ${n} Ticket${n === 1 ? '' : 's'}…</h2>
+        <p>to ${esc(who.first)} ${esc(who.last)}</p>
+      </div>`;
+    const [result] = await Promise.all([completeTransfer(ev, seats, chosen, who), new Promise(r => setTimeout(r, 1400))]);
+    stepDone(result);
+  };
+
+  const stepDone = ({ remaining }) => {
+    const n = chosen.size;
+    box.innerHTML = `
+      <div class="tx-status">
+        <div class="tx-ok"><svg viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9"/></svg></div>
+        <h2>Transfer Sent</h2>
+        <p>${n} ticket${n === 1 ? ' was' : 's were'} sent to <b>${esc(who.first)} ${esc(who.last)}</b> (${esc(who.contact)}).</p>
+        <p class="sub">${remaining ? `You have ${plural(remaining, 'ticket')} left for this event.` : 'You have no tickets left for this event.'}</p>
+        <button class="btn block" data-done>Done</button>
+      </div>`;
+    box.querySelector('[data-done]').onclick = () => sheet.close();
+    sheet._onClose = () => { if (remaining) route(); else location.hash = '#/tickets'; };
+  };
+
+  stepSelect();
+}
+
+async function completeTransfer(ev, seats, chosen, who) {
+  const fresh = (await TicketDB.get(ev.id)) || ev;
+  const sent = [...chosen].sort((a, b) => a - b);
+  const keep = seats.filter((_, i) => !chosen.has(i));
+  const record = {
+    id: uid(),
+    to: { first: who.first, last: who.last, contact: who.contact },
+    note: who.note,
+    seats: sent.map(i => seatLabel(ev, seats[i])),
+    count: sent.length,
+    at: Date.now(),
+  };
+  if (!keep.length) {
+    await TicketDB.remove(ev.id);
+    return { remaining: 0 };
+  }
+  const explicitSeats = !ev.isGA && keep.some(Boolean);
+  await TicketDB.put({
+    ...fresh,
+    seats: explicitSeats ? keep.join(', ') : fresh.seats,
+    quantity: keep.length,
+    transfers: [...(fresh.transfers || []), record],
+    updatedAt: Date.now(),
+  });
+  return { remaining: keep.length };
+}
+
+function openTransferHistory(ev) {
+  const list = [...(ev.transfers || [])].reverse();
+  openSheet(`
+    ${sheetHead('Transfer History')}
+    <div class="group">
+      ${list.map(t => `
+        <div class="cell noicon"><span class="lbl">${esc(t.to.first)} ${esc(t.to.last)}
+          <small>${esc(t.to.contact)} · ${new Date(t.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</small>
+          <small>${t.seats.map(esc).join('<br>')}</small></span>
+          <span class="val">Sent</span></div>`).join('')}
+    </div>`, 'dark-sheet');
 }
 
 /* Full-screen barcode view ("View Tickets"): swipe between tickets. */
