@@ -276,7 +276,7 @@ async function renderTicket(id) {
       <div class="tm-dock">
         <button disabled>${icon('upload')}<span>Upgrade</span></button>
         <button id="transferBtn" ${listed ? 'disabled' : ''}><svg viewBox="0 0 24 24" class="i"><path d="M7 17 17 7M9 7h8v8"/></svg><span>Transfer</span></button>
-        <button id="sellBtn" ${listed ? 'disabled' : ''}>${icon('refresh')}<span>Sell</span></button>
+        <button id="sellBtn" disabled>${icon('refresh')}<span>Sell</span></button>
       </div>
     </div>`;
 
@@ -303,7 +303,6 @@ async function renderTicket(id) {
   document.getElementById('helpBtn').onclick = () => openHelp(ev, seats);
   document.getElementById('moreBtn').onclick = () => openEventMenu(ev);
   document.getElementById('transferBtn').onclick = () => openTransfer(ev);
-  document.getElementById('sellBtn').onclick = () => { location.hash = `#/edit/${encodeURIComponent(ev.id)}`; toast('Set a "Listed for sale" price to list these tickets'); };
   view.querySelectorAll('[data-edit-listing]').forEach(b => b.onclick = () => { location.hash = `#/edit/${encodeURIComponent(ev.id)}`; });
   view.querySelectorAll('[data-remove-listing]').forEach(b => b.onclick = () => {
     actionSheet('Remove your resale listing?', [

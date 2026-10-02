@@ -97,10 +97,11 @@ Changes are saved on that phone only.
 Venue maps use free services that need **no API key**:
 
 - [Leaflet](https://leafletjs.com/) for the map
-- [OpenStreetMap](https://www.openstreetmap.org/copyright) map tiles. If they
-  can't load, the app switches to Esri's free World Street Map automatically.
-  In dark mode the map is shown in dark colours (the ticket page keeps a light
-  map, like Ticketmaster).
+- [Esri World Street Map](https://www.arcgis.com/home/item.html?id=3b93337983e9436f8db950e38a8629af)
+  tiles, with labels in English everywhere. If they can't load, the app
+  switches to [OpenStreetMap](https://www.openstreetmap.org/copyright) tiles
+  automatically. In dark mode the map is shown in dark colours (the ticket page
+  keeps a light map, like Ticketmaster).
 - [OpenStreetMap Nominatim](https://nominatim.org/) to find a venue from its
   name or address (results are saved on the device)
 

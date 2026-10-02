@@ -6,7 +6,7 @@ const view = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');
 const toastEl = document.getElementById('toast');
 
-const APP_VERSION = '3.3.0';
+const APP_VERSION = '3.4.0';
 
 const state = {
   listTab: 'upcoming',
