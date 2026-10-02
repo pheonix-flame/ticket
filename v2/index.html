@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#024DDF">
+  <meta name="theme-color" content="#1F262D">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ticketmaster">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icons/android-launchericon-192-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="icons/android-launchericon-192-192.png">
-  <title>My Tickets</title>
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <title>Ticketmaster</title>
+  <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin>
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -18,7 +21,7 @@
     <main id="view"></main>
 
     <nav class="tabbar" id="tabbar">
-      <a href="#/discover" data-tab="discover">
+      <a href="#/" data-tab="discover">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
         <span>Discover</span>
       </a>
@@ -26,7 +29,7 @@
         <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>
         <span>For You</span>
       </a>
-      <a href="#/" data-tab="tickets">
+      <a href="#/tickets" data-tab="tickets">
         <svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M9 6v12" stroke-dasharray="2 2"/></svg>
         <span>My Tickets</span>
       </a>
@@ -44,6 +47,8 @@
   </div>
 
   <script src="db.js"></script>
+  <script src="map.js"></script>
   <script src="app.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>

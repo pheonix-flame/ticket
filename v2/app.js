@@ -7,7 +7,11 @@ const toastEl = document.getElementById('toast');
 const state = {
   listTab: 'upcoming',
   liveURLs: [],
+  prefill: null,
+  installPrompt: null,
 };
+
+const APP_VERSION = '2.1.0';
 
 /* ---------------- helpers ---------------- */
 
@@ -25,6 +29,15 @@ const ICONS = {
   upload: '<svg viewBox="0 0 24 24"><path d="M12 20V9m-5 5 5-5 5 5M5 4h14"/></svg>',
   migrate: '<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',
   shield: '<svg viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/><path d="m9 12 2 2 4-4"/></svg>',
+  pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
+  heart: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.5-9.5 9-9.5 9z"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  tag: '<svg viewBox="0 0 24 24"><path d="M20 12 12 20l-8-8V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>',
+  directions: '<svg viewBox="0 0 24 24"><path d="M12 2 22 12 12 22 2 12z"/><path d="M9 14v-3h5M12 8.5 14.5 11 12 13.5"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
+  home: '<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
   wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14.5h2"/></svg>',
 };
 
@@ -146,19 +159,22 @@ async function route() {
   document.querySelectorAll('.sheet-wrap').forEach(s => s.close ? s.close() : s.remove());
   const hash = location.hash.replace(/^#/, '') || '/';
   const parts = hash.split('/').filter(Boolean);
+  if (parts[0] !== 'home-editor') homeState.draft = null;
   window.scrollTo(0, 0);
   try {
     if (parts[0] === 'event' && parts[1]) return await renderDetail(parts[1]);
     if (parts[0] === 'new') return await renderForm(null);
     if (parts[0] === 'edit' && parts[1]) return await renderForm(parts[1]);
     if (parts[0] === 'account') return await renderAccount();
-    if (parts[0] === 'discover') return renderPlaceholder('discover', 'Discover', 'Find events near you.');
-    if (parts[0] === 'foryou') return renderPlaceholder('foryou', 'For You', 'Recommendations based on your favorite artists.');
-    if (parts[0] === 'sell') return renderPlaceholder('sell', 'Sell', 'Choose an event from My Tickets to list tickets for sale.');
-    return await renderList();
+    if (parts[0] === 'tickets') return await renderList();
+    if (parts[0] === 'explore' && parts[1]) return await renderExplore(decodeURIComponent(parts[1]));
+    if (parts[0] === 'foryou') return await renderForYou();
+    if (parts[0] === 'sell') return await renderSell();
+    if (parts[0] === 'home-editor') return await renderHomeEditor();
+    return await renderDiscover();
   } catch (err) {
     console.error(err);
-    view.innerHTML = `<div class="empty"><h2>Something went wrong</h2><p>${esc(err.message)}</p><a class="btn" href="#/">Back to My Tickets</a></div>`;
+    view.innerHTML = `<div class="empty"><h2>Something went wrong</h2><p>${esc(err.message)}</p><a class="btn" href="#/tickets">Back to My Tickets</a></div>`;
   }
 }
 
@@ -268,7 +284,7 @@ async function renderDetail(id) {
   setChrome({ tab: 'tickets', tabbarVisible: false });
   const ev = await TicketDB.get(id);
   if (!ev) {
-    view.innerHTML = `<div class="empty"><h2>Event not found</h2><p>It may have been deleted.</p><a class="btn" href="#/">Back to My Tickets</a></div>`;
+    view.innerHTML = `<div class="empty"><h2>Event not found</h2><p>It may have been deleted.</p><a class="btn" href="#/tickets">Back to My Tickets</a></div>`;
     return;
   }
   const seats = seatList(ev);
@@ -277,7 +293,7 @@ async function renderDetail(id) {
   view.innerHTML = `
     <div class="detail">
       <header class="topbar">
-        <a class="icon-btn" href="#/" aria-label="Back">${ICONS.back}</a>
+        <a class="icon-btn" href="#/tickets" aria-label="Back">${ICONS.back}</a>
         <h1>My Tickets</h1>
         <button class="icon-btn" id="moreBtn" aria-label="More">${ICONS.more}</button>
       </header>
@@ -290,7 +306,15 @@ async function renderDetail(id) {
         <button class="btn" id="transferBtn">Transfer</button>
         <button class="btn" id="sellBtn">Sell</button>
       </div>
+      ${ev.venue || ev.city || ev.address ? `<div class="venue-wrap"><h2 class="ex-h">Venue</h2>${venueMapBlockHTML(ev)}</div>` : ''}
     </div>`;
+  mountVenueMap(ev, async pos => {
+    // Remember coordinates so the map shows instantly (and offline) next time.
+    if (pos && typeof ev.lat !== 'number') {
+      const fresh = await TicketDB.get(ev.id);
+      if (fresh) TicketDB.put({ ...fresh, lat: pos.lat, lng: pos.lng, geoLabel: pos.label || '' });
+    }
+  });
 
   const carousel = document.getElementById('carousel');
   const counter = document.getElementById('counter');
@@ -340,7 +364,7 @@ function openEventMenu(ev) {
     await TicketDB.remove(ev.id);
     sheet.close();
     toast('Event deleted');
-    location.hash = '#/';
+    location.hash = '#/tickets';
   };
 }
 
@@ -374,6 +398,56 @@ function openDetails(ev, seats) {
 function money(n) {
   const v = Number(n);
   return isNaN(v) ? String(n) : v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
+/* ---------------- Venue map ---------------- */
+
+function venueMapBlockHTML(ev) {
+  return `
+    <div class="venue-card">
+      <div class="venue-map" id="venueMap"><div class="map-msg">Loading map…</div></div>
+      <div class="venue-info">
+        <div class="vi-text">
+          <b>${esc(ev.venue || ev.city || 'Venue')}</b>
+          <span>${esc([ev.address, ev.venue ? ev.city : ''].filter(Boolean).join(', '))}</span>
+        </div>
+        <a class="btn outline dir-btn" id="dirBtn" href="${esc(VenueMap.directionsURL(ev, null))}" target="_blank" rel="noopener">Directions</a>
+      </div>
+    </div>`;
+}
+
+async function mountVenueMap(ev, onLocated) {
+  const el = document.getElementById('venueMap');
+  if (!el) return;
+  const msg = text => { el.innerHTML = `<div class="map-msg">${text}</div>`; };
+  if (!navigator.onLine && typeof ev.lat !== 'number') return msg('Map unavailable offline');
+  try {
+    const pos = await VenueMap.locate(ev);
+    if (!document.body.contains(el)) return;
+    if (!pos) return msg('Location not found — add the venue address when editing this event');
+    el.innerHTML = '';
+    await VenueMap.render(el, pos.lat, pos.lng);
+    const dir = document.getElementById('dirBtn');
+    if (dir) dir.href = VenueMap.directionsURL(ev, pos);
+    el.onclick = () => openFullMap(ev, pos);
+    if (onLocated) onLocated(pos);
+  } catch (e) {
+    console.warn(e);
+    if (document.body.contains(el)) msg('Map unavailable right now');
+  }
+}
+
+function openFullMap(ev, pos) {
+  const sheet = openSheet(`
+    <div class="sheet-head">
+      <span style="width:44px"></span><h3>${esc(ev.venue || 'Venue')}</h3>
+      <button class="icon-btn" data-close aria-label="Close">${ICONS.close}</button>
+    </div>
+    <div class="full-map" id="fullMap"></div>
+    <div style="padding:14px 16px 0">
+      <a class="btn block" href="${esc(VenueMap.directionsURL(ev, pos))}" target="_blank" rel="noopener">Get Directions</a>
+    </div>`, 'map-sheet');
+  VenueMap.render(sheet.querySelector('#fullMap'), pos.lat, pos.lng, { interactive: true, zoom: 16 });
 }
 
 /* ---------------- Barcode (SafeTix-style rotating) ---------------- */
@@ -472,10 +546,15 @@ async function renderForm(id) {
   setChrome({ tabbarVisible: false });
   const existing = id ? await TicketDB.get(id) : null;
   if (id && !existing) {
-    view.innerHTML = `<div class="empty"><h2>Event not found</h2><a class="btn" href="#/">Back to My Tickets</a></div>`;
+    view.innerHTML = `<div class="empty"><h2>Event not found</h2><a class="btn" href="#/tickets">Back to My Tickets</a></div>`;
     return;
   }
-  const ev = existing || { quantity: 2, ticketType: 'Standard Admission', isGA: false };
+  const prefill = !existing && state.prefill ? state.prefill : null;
+  state.prefill = null;
+  const ev = existing || { quantity: 2, ticketType: 'Standard Admission', isGA: false, ...(prefill || {}) };
+  if (typeof ev.image === 'string') {
+    try { ev.image = await (await fetch(ev.image)).blob(); } catch (_) { ev.image = null; }
+  }
   let imageBlob = ev.image || null;
   let previewURL = imageBlob ? objectURL(imageBlob) : '';
 
@@ -489,7 +568,7 @@ async function renderForm(id) {
 
   view.innerHTML = `
     <header class="topbar light">
-      <a class="text-btn" href="${existing ? `#/event/${encodeURIComponent(ev.id)}` : '#/'}">Cancel</a>
+      <a class="text-btn" href="${existing ? `#/event/${encodeURIComponent(ev.id)}` : '#/tickets'}">Cancel</a>
       <h1>${existing ? 'Edit Event' : 'Add Tickets'}</h1>
       <span style="min-width:64px"></span>
     </header>
@@ -511,6 +590,7 @@ async function renderForm(id) {
         ${f('venue', 'Venue', { placeholder: 'e.g. SoFi Stadium' })}
         ${f('city', 'City', { placeholder: 'e.g. Inglewood, CA' })}
       </div>
+      ${f('address', 'Venue address (optional)', { placeholder: '1001 Stadium Dr', hint: 'Used to show the venue on the map. Leave blank to look it up from the venue name.' })}
 
       <h2>Tickets</h2>
       ${f('ticketType', 'Ticket type', { placeholder: 'Standard Admission' })}
@@ -601,6 +681,7 @@ async function renderForm(id) {
       startAt: val('startAt'),
       venue: val('venue'),
       city: val('city'),
+      address: val('address'),
       ticketType: val('ticketType') || 'Standard Admission',
       isGA: gaToggle.checked,
       section: val('section'),
@@ -616,6 +697,10 @@ async function renderForm(id) {
       createdAt: ev.createdAt || Date.now(),
       updatedAt: Date.now(),
     };
+    // Look the venue up again on the map if its location changed.
+    if ([record.venue, record.city, record.address].join('|') !== [ev.venue, ev.city, ev.address].join('|')) {
+      delete record.lat; delete record.lng; delete record.geoLabel;
+    }
     try {
       await TicketDB.put(record);
       requestPersistentStorage();
@@ -633,7 +718,7 @@ async function renderForm(id) {
     if (!confirm(`Delete "${ev.title || 'this event'}" and all its tickets?`)) return;
     await TicketDB.remove(ev.id);
     toast('Event deleted');
-    location.hash = '#/';
+    location.hash = '#/tickets';
   });
 }
 
@@ -673,6 +758,13 @@ async function renderAccount() {
     </div>
 
     <div class="section">
+      <div class="section-title">App</div>
+      <a class="item" href="#/home-editor">${ICONS.home}<span class="grow">Customize Home Page<small>Add, edit or reorder what shows on Discover</small></span></a>
+      ${isStandalone() ? '' : `<button class="item" id="installBtn">${ICONS.phone}<span class="grow">Install App<small>Add Ticketmaster to your home screen</small></span></button>`}
+      <button class="item" id="updateBtn">${ICONS.download}<span class="grow">Check for Updates<small>Version ${APP_VERSION}</small></span></button>
+    </div>
+
+    <div class="section">
       <div class="section-title">Backup</div>
       <button class="item" id="exportBtn">${ICONS.download}<span class="grow">Export backup<small>Download all events and images as a file</small></span></button>
       <label class="item" style="cursor:pointer">${ICONS.upload}<span class="grow">Import backup<small>Restore events from a backup file</small></span>
@@ -686,6 +778,8 @@ async function renderAccount() {
     </div>
   `;
 
+  document.getElementById('installBtn')?.addEventListener('click', showInstallHelp);
+  document.getElementById('updateBtn').addEventListener('click', checkForUpdate);
   document.getElementById('exportBtn').addEventListener('click', exportBackup);
   document.getElementById('importInput').addEventListener('change', e => importBackup(e.target.files[0]));
   document.getElementById('legacyBtn')?.addEventListener('click', importLegacy);
@@ -782,26 +876,136 @@ async function importLegacy() {
   renderAccount();
 }
 
-/* ---------------- Placeholder tabs ---------------- */
-
-function renderPlaceholder(tab, title, text) {
-  setChrome({ tab });
-  view.innerHTML = `
-    <header class="page-head" style="padding-bottom:18px"><div class="row"><h1>${esc(title)}</h1></div></header>
-    <div class="empty">
-      <div class="art">${ICONS.ticket}</div>
-      <h2>${esc(title)}</h2>
-      <p>${esc(text)}</p>
-      <a class="btn" href="#/">Go to My Tickets</a>
-    </div>`;
-}
-
 /* ---------------- boot ---------------- */
 
+/* ---------------- PWA: install + updates ---------------- */
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function isIOS() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  state.installPrompt = e;
+  maybeShowInstallBanner();
+});
+
+window.addEventListener('appinstalled', () => {
+  state.installPrompt = null;
+  document.getElementById('installBanner')?.remove();
+  toast('App installed');
+});
+
+async function showInstallHelp() {
+  if (state.installPrompt) {
+    state.installPrompt.prompt();
+    await state.installPrompt.userChoice.catch(() => {});
+    state.installPrompt = null;
+    return;
+  }
+  const ios = isIOS();
+  openSheet(`
+    <div class="sheet-head">
+      <span style="width:44px"></span><h3>Install the App</h3>
+      <button class="icon-btn" data-close aria-label="Close">${ICONS.close}</button>
+    </div>
+    <div class="install-steps">
+      <img src="icons/icon-192.png" alt="" class="install-icon">
+      <p>Install Ticketmaster on your ${ios ? 'iPhone' : 'phone'} for full-screen tickets that work offline.</p>
+      ${ios ? `
+        <ol>
+          <li>Open this page in <b>Safari</b>.</li>
+          <li>Tap the <b>Share</b> button <span class="kbd">${ICONS.share}</span> in the toolbar.</li>
+          <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+          <li>Tap <b>Add</b>.</li>
+        </ol>` : `
+        <ol>
+          <li>Open the browser menu <b>⋮</b>.</li>
+          <li>Tap <b>Install app</b> or <b>Add to Home screen</b>.</li>
+          <li>Confirm with <b>Install</b>.</li>
+        </ol>`}
+    </div>`);
+}
+
+function maybeShowInstallBanner() {
+  if (isStandalone() || document.getElementById('installBanner')) return;
+  let dismissed = 0;
+  try { dismissed = +localStorage.getItem('installDismissed') || 0; } catch (_) {}
+  if (Date.now() - dismissed < 7 * 864e5) return;
+  if (!state.installPrompt && !isIOS()) return;
+  const bar = document.createElement('div');
+  bar.id = 'installBanner';
+  bar.className = 'install-banner';
+  bar.innerHTML = `
+    <img src="icons/icon-192.png" alt="">
+    <div class="ib-text"><b>Get the Ticketmaster app</b><span>Your tickets, even offline</span></div>
+    <button class="ib-btn">${state.installPrompt ? 'Install' : 'How'}</button>
+    <button class="ib-x" aria-label="Dismiss">${ICONS.close}</button>`;
+  bar.querySelector('.ib-btn').onclick = () => { bar.remove(); showInstallHelp(); };
+  bar.querySelector('.ib-x').onclick = () => {
+    bar.remove();
+    try { localStorage.setItem('installDismissed', String(Date.now())); } catch (_) {}
+  };
+  document.body.appendChild(bar);
+}
+
+function showUpdateReady(worker) {
+  if (document.getElementById('updateBanner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'updateBanner';
+  bar.className = 'update-banner';
+  bar.innerHTML = `<span>A new version is available.</span><button>Refresh</button>`;
+  bar.querySelector('button').onclick = () => {
+    worker.postMessage({ type: 'SKIP_WAITING' });
+  };
+  document.body.appendChild(bar);
+}
+
+async function checkForUpdate() {
+  if (!('serviceWorker' in navigator)) return toast('Updates are automatic in this browser');
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) return toast('You have the latest version');
+  await reg.update().catch(() => {});
+  if (reg.waiting) showUpdateReady(reg.waiting);
+  else if (reg.installing) toast('Downloading update…');
+  else toast('You have the latest version');
+}
+
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed', err));
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateReady(reg.waiting);
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw && nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateReady(nw);
+        });
+      });
+      // Check for a new version whenever the app comes back to the foreground.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      });
+    } catch (err) {
+      console.warn('SW registration failed', err);
+    }
+    let reloading = false;
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // Only reload when an update replaced a running version, not on first install.
+      if (reloading || !hadController) return;
+      reloading = true;
+      location.reload();
+    });
   });
 }
 
-route();
+window.addEventListener('load', () => setTimeout(maybeShowInstallBanner, 2500));
+
+// home.js loads after this file, so wait until every script has run.
+window.addEventListener('DOMContentLoaded', route);

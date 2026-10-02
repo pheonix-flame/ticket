@@ -5,8 +5,9 @@
 
 const TicketDB = (() => {
   const DB_NAME = 'tm-wallet';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE = 'events';
+  const SETTINGS = 'settings';
   let dbPromise = null;
 
   function open() {
@@ -19,6 +20,9 @@ const TicketDB = (() => {
           const store = db.createObjectStore(STORE, { keyPath: 'id' });
           store.createIndex('startAt', 'startAt');
         }
+        if (!db.objectStoreNames.contains(SETTINGS)) {
+          db.createObjectStore(SETTINGS, { keyPath: 'key' });
+        }
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -26,11 +30,11 @@ const TicketDB = (() => {
     return dbPromise;
   }
 
-  async function tx(mode, fn) {
+  async function tx(mode, fn, storeName = STORE) {
     const db = await open();
     return new Promise((resolve, reject) => {
-      const t = db.transaction(STORE, mode);
-      const store = t.objectStore(STORE);
+      const t = db.transaction(storeName, mode);
+      const store = t.objectStore(storeName);
       let result;
       Promise.resolve(fn(store)).then(r => { result = r; });
       t.oncomplete = () => resolve(result);
@@ -53,6 +57,9 @@ const TicketDB = (() => {
     putMany: events => tx('readwrite', s => { events.forEach(e => s.put(e)); return events.length; }),
     remove: id => tx('readwrite', s => { s.delete(id); }),
     clear: () => tx('readwrite', s => { s.clear(); }),
+    getSetting: key => tx('readonly', s => reqToPromise(s.get(key)), SETTINGS).then(r => (r ? r.value : undefined)),
+    setSetting: (key, value) => tx('readwrite', s => { s.put({ key, value }); }, SETTINGS),
+    removeSetting: key => tx('readwrite', s => { s.delete(key); }, SETTINGS),
   };
 })();
 
