@@ -11,7 +11,7 @@ as many as the phone has room for.
 - **Ticket screen** (matches the Ticketmaster app's order page): event photo with the date, title, venue and ticket count card, **View Tickets**, Tickets / Extras tabs, the order number and a block per ticket (SECTION / ROW / SEAT, or GENERAL ADMISSION), an optional "Listed for sale at" line, a More Options venue map, and the floating Upgrade / Transfer / Sell bar. The header shrinks to the title, venue and a barcode button as you scroll.
 - **Transfer**: the same steps as Ticketmaster: select tickets (or Select All) → recipient name and email/mobile number with an optional message → sending → **Transfer Sent**. The sent seats are removed from the order, and the event is removed if no tickets are left. Past transfers are listed under **Extras → Transfer History**.
 - **View Tickets**: full-screen, swipeable barcodes that refresh every 15 seconds, with a moving light (it follows the phone's tilt on iPhone after you tap the barcode)
-- **Photos**: every event photo is shown at 3:2. After picking a photo you can drag and zoom it, or tap **Fit** to keep the whole photo (blurred edges fill the gaps). **Adjust photo** re-frames it later.
+- **Photos**: every event photo is shown at 3:2. After picking a photo you can drag and zoom it, stretch its width with the **Width** slider, tap **Stretch to Fit** to make the whole photo fill the frame, or **Fit** to keep the whole photo unstretched (blurred edges fill the gaps). **Adjust photo** re-frames it later.
 - **Account**: Light / Dark / System appearance, home page editor, backup and restore
 
 ## Files
@@ -94,13 +94,18 @@ Changes are saved on that phone only.
 
 ## Maps
 
-Venue maps use free services with no API key:
+Venue maps use free services that need **no API key**:
 
 - [Leaflet](https://leafletjs.com/) for the map
-- [CARTO](https://carto.com/basemaps/) basemap tiles built on OpenStreetMap
-  data, with a dark map in dark mode
-- [OpenStreetMap Nominatim](https://nominatim.org/) to look up a venue's location
-  from its name/address (results are saved on the device)
+- [OpenStreetMap](https://www.openstreetmap.org/copyright) map tiles. If they
+  can't load, the app switches to Esri's free World Street Map automatically.
+  In dark mode the map is shown in dark colours (the ticket page keeps a light
+  map, like Ticketmaster).
+- [OpenStreetMap Nominatim](https://nominatim.org/) to find a venue from its
+  name or address (results are saved on the device)
+
+Venue locations are looked up once and saved, and map tiles you've viewed are
+cached, so maps keep working offline.
 
 ## Releasing app updates
 

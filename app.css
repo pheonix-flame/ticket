@@ -353,7 +353,7 @@ body.tm-page { --tm-card: #242424; --tm-info: #1E1E1E; --tm-blue: #0051D4; --tm-
 .tm-extras .cell .lbl small, .tm-extras .cell .val { color: var(--tm-label); }
 
 .tm-h { margin: 34px 22px 14px; font-size: 19px; font-weight: 800; text-transform: uppercase; letter-spacing: .2px; }
-.tm-map { position: relative; margin: 0 22px; overflow: hidden; background: var(--tm-card); }
+.tm-map { position: relative; z-index: 0; isolation: isolate; margin: 0 22px; overflow: hidden; background: var(--tm-card); }
 .tm-map .venue-map { height: 190px; }
 .tm-map .map-msg { color: var(--tm-label); }
 .tm-map-name { position: absolute; top: 14px; left: 16px; right: 16px; z-index: 500; pointer-events: none; font-size: 26px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.7), 0 0 14px rgba(0,0,0,.45); }
@@ -412,7 +412,7 @@ body.tm-page { --tm-card: #242424; --tm-info: #1E1E1E; --tm-blue: #0051D4; --tm-
 :root .sheet.dark-sheet .group, :root .sheet.dark-sheet .sheet-text { background: #2C2C2E; color: #fff; }
 
 /* ---------- Image cropper ---------- */
-.sheet-wrap.crop-view { flex-direction: column; justify-content: flex-start; align-items: stretch; background: #000; color: #fff; z-index: 300; }
+.sheet-wrap.crop-view { flex-direction: column; justify-content: flex-start; align-items: stretch; background: #000; color: #fff; z-index: 1200; }
 .crop-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: calc(6px + var(--safe-top)) 8px 6px; }
 .crop-head .title { font-size: 17px; font-weight: 600; }
 .crop-head .nav-btn { color: #fff; }
@@ -456,7 +456,7 @@ body:not(.grouped) .group { background: var(--card-2); }
 .cell select.inline { direction: rtl; color: var(--text-2); }
 
 /* ---------- Venue map ---------- */
-.map-wrap { margin: 0 16px; border-radius: 12px; overflow: hidden; background: var(--card); }
+.map-wrap { position: relative; z-index: 0; isolation: isolate; margin: 0 16px; border-radius: 12px; overflow: hidden; background: var(--card); }
 body:not(.grouped) .map-wrap { background: var(--card-2); }
 .venue-map { position: relative; height: 170px; background: var(--fill); cursor: pointer; z-index: 0; }
 .map-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; font-size: 14px; color: var(--text-2); }
@@ -519,7 +519,7 @@ body:not(.grouped) .image-pick { background: var(--card-2); }
 .image-pick .ph { position: absolute; inset: 0; }
 
 /* ---------- Sheets ---------- */
-.sheet-wrap { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.4); animation: fade .2s; }
+.sheet-wrap { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.4); animation: fade .2s; }
 .sheet { width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; background: var(--bg-grouped); border-radius: 14px 14px 0 0; padding-bottom: calc(18px + var(--safe-bottom)); animation: up .32s cubic-bezier(.2,.9,.25,1); }
 .sheet .grab { width: 36px; height: 5px; margin: 6px auto 0; border-radius: 3px; background: var(--text-3); }
 .sheet-head { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 52px; padding: 0 8px; background: var(--bg-grouped); }
@@ -647,3 +647,23 @@ body.no-tabbar .toast { bottom: calc(96px + var(--safe-bottom)); }
 .dark-sheet .cell + .cell::before, .dark-sheet .fcell + .fcell::before, .dark-sheet .frow .fcell + .fcell::before, .dark-sheet .fcell + .frow::before, .dark-sheet .frow + .fcell::before { border-color: #3A3A3A; }
 .dark-sheet .nav-btn { color: #6EA2FF; }
 .dark-sheet .grab { background: #555; }
+
+/* Pop-ups cover the page: hide the floating bars underneath while one is open. */
+body:has(.sheet-wrap) .tm-dock, body:has(.sheet-wrap) .tm-bar, body:has(.sheet-wrap) .buybar { visibility: hidden; }
+.toast { z-index: 1100; }
+.update-banner, .install-banner { z-index: 1050; }
+.crop-view.sheet-wrap { z-index: 1200; }
+
+/* Dark-mode map: invert the light map tiles. */
+.map-dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.9); }
+.map-dark .leaflet-control-attribution { background: rgba(0,0,0,.6); color: #bbb; }
+.map-dark .leaflet-control-attribution a { color: #8ab4ff; }
+
+/* Cropper sliders */
+.crop-row { display: flex; align-items: center; gap: 12px; max-width: 460px; margin: 0 auto 10px; font-size: 14px; color: rgba(255,255,255,.8); }
+.crop-row span { width: 46px; text-align: left; }
+.crop-row input { flex: 1; accent-color: #fff; }
+.crop-row b { width: 44px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.crop-btns { flex-wrap: wrap; }
+.leaflet-container .leaflet-control-attribution { font-size: 9px; line-height: 1.3; max-width: 100%; white-space: normal; }
+.tm-dir { bottom: 30px; }

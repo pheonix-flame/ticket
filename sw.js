@@ -1,7 +1,7 @@
 // Offline support. Tickets live in IndexedDB; this caches the app itself,
 // the home page content, the map library and map tiles you've viewed.
 // Bump VERSION whenever you deploy changes so installed apps show "Refresh".
-const VERSION = '3.2.0';
+const VERSION = '3.3.0';
 const SHELL_CACHE = `tm-shell-${VERSION}`;
 const RUNTIME_CACHE = 'tm-runtime';
 const TILE_CACHE = 'tm-tiles';
@@ -85,7 +85,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
 
   // Map tiles: cache-first so venues you've opened still show offline.
-  if (url.hostname.endsWith('basemaps.cartocdn.com') || url.hostname.endsWith('tile.openstreetmap.org')) {
+  if (url.hostname.endsWith('tile.openstreetmap.org') || url.hostname === 'server.arcgisonline.com') {
     event.respondWith(cacheFirst(request, TILE_CACHE, MAX_TILES));
     return;
   }

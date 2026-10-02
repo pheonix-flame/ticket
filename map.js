@@ -1,19 +1,31 @@
 // Venue maps using free services, no API key needed:
 //  - Leaflet (map library) from cdnjs
-//  - CARTO "Voyager" basemap tiles built on OpenStreetMap data
+//  - OpenStreetMap's own map tiles (no key); if they fail to load, Esri's
+//    free World Street Map is used instead
 //  - OpenStreetMap Nominatim for turning a venue name/address into coordinates
 
 const VenueMap = (() => {
   const LEAFLET_JS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
   const LEAFLET_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-  const TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-  const TILES_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  // Keyless tile providers, tried in order.
+  const PROVIDERS = [
+    {
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    },
+    {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
+      maxZoom: 19,
+    },
+  ];
+  let providerIndex = 0;
 
   function isDark() {
     const t = document.documentElement.getAttribute('data-theme');
     return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   }
-  const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
   const GEOCODER = 'https://nominatim.openstreetmap.org/search';
 
   let leafletPromise = null;
@@ -86,7 +98,25 @@ const VenueMap = (() => {
       keyboard: false,
       tap: false,
     });
-    L.tileLayer(isDark() ? TILES_DARK : TILES, { attribution: ATTRIBUTION, subdomains: 'abcd', maxZoom: 19, detectRetina: true }).addTo(map);
+    // Dark mode: invert the light map (except on the ticket page, which uses a light map like Ticketmaster).
+    el.classList.toggle('map-dark', isDark() && !document.body.classList.contains('tm-page'));
+    const addTiles = () => {
+      const p = PROVIDERS[providerIndex];
+      const layer = L.tileLayer(p.url, { attribution: p.attribution, maxZoom: p.maxZoom });
+      let errors = 0, loaded = 0;
+      layer.on('tileload', () => { loaded++; });
+      layer.on('tileerror', () => {
+        errors++;
+        // A provider that keeps failing (blocked, rate-limited, key required…): switch to the next one.
+        if (errors >= 3 && loaded === 0 && providerIndex < PROVIDERS.length - 1) {
+          providerIndex++;
+          map.removeLayer(layer);
+          addTiles();
+        }
+      });
+      layer.addTo(map);
+    };
+    addTiles();
     const pin = L.divIcon({
       className: 'tm-pin',
       html: '<span></span>',

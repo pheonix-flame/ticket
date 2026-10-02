@@ -6,7 +6,7 @@ const view = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');
 const toastEl = document.getElementById('toast');
 
-const APP_VERSION = '3.2.0';
+const APP_VERSION = '3.3.0';
 
 const state = {
   listTab: 'upcoming',
@@ -618,8 +618,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
 /* ---------------- Image cropper ----------------
    Every event image in the app is shown at 3:2, so uploads are framed here:
-   drag to move, pinch or use the slider to zoom. "Fit" shows the whole photo
-   (blurred edges fill the gaps); "Fill" covers the frame. */
+   - drag to move, pinch or use the Zoom slider to zoom
+   - the Width slider stretches the photo sideways (e.g. to make a tall photo
+     fill the frame); "Stretch to Fit" stretches it to fill the frame exactly
+   - "Fit" shows the whole photo (blurred edges fill any gaps); "Fill" covers
+     the frame without stretching. */
 
 const IMAGE_ASPECT = 3 / 2;
 
@@ -645,51 +648,66 @@ function openCropper(source, { aspect = IMAGE_ASPECT, outWidth = 1500 } = {}) {
           </div>
         </div>
         <div class="crop-tools">
-          <input type="range" class="crop-zoom" min="0" max="1000" value="0" aria-label="Zoom">
-          <div class="crop-btns"><button data-fit>Fit</button><button data-fill>Fill</button></div>
-          <p>Drag to move · Pinch or slide to zoom</p>
+          <label class="crop-row"><span>Zoom</span><input type="range" class="crop-zoom" min="0" max="1000" value="0" aria-label="Zoom"></label>
+          <label class="crop-row"><span>Width</span><input type="range" class="crop-width" min="50" max="300" value="100" aria-label="Stretch width"><b class="crop-pct">100%</b></label>
+          <div class="crop-btns">
+            <button data-fit>Fit</button>
+            <button data-fill>Fill</button>
+            <button data-stretch>Stretch to Fit</button>
+            <button data-reset>Reset</button>
+          </div>
+          <p>Drag to move · Pinch or slide to zoom · Width stretches the photo</p>
         </div>`;
       document.body.appendChild(wrap);
 
       const frame = wrap.querySelector('.crop-frame');
       const pic = wrap.querySelector('.crop-img');
       const zoom = wrap.querySelector('.crop-zoom');
+      const width = wrap.querySelector('.crop-width');
+      const pct = wrap.querySelector('.crop-pct');
       const W = img.naturalWidth, H = img.naturalHeight;
-      let fw, fh, minS, coverS, maxS, s, x, y;
+      // s = vertical scale, k = extra horizontal stretch (1 = natural shape)
+      let fw, fh, s, k = 1, x, y;
+
+      const minS = () => Math.min(fw / (W * k), fh / H);
+      const coverS = () => Math.max(fw / (W * k), fh / H);
+      const maxS = () => coverS() * 4;
 
       const layout = () => {
         const maxW = Math.min(window.innerWidth - 32, 620);
-        const maxH = window.innerHeight * 0.55;
+        const maxH = window.innerHeight * 0.45;
         fw = Math.min(maxW, maxH * aspect);
         fh = fw / aspect;
         frame.style.width = `${fw}px`;
         frame.style.height = `${fh}px`;
-        coverS = Math.max(fw / W, fh / H);
-        minS = Math.min(fw / W, fh / H);
-        maxS = coverS * 4;
       };
       const clamp = () => {
-        s = Math.min(maxS, Math.max(minS, s));
-        const iw = W * s, ih = H * s;
-        x = iw >= fw ? Math.min(0, Math.max(fw - iw, x)) : (fw - iw) / 2;
-        y = ih >= fh ? Math.min(0, Math.max(fh - ih, y)) : (fh - ih) / 2;
+        s = Math.min(maxS(), Math.max(minS(), s));
+        const iw = W * s * k, ih = H * s;
+        x = iw >= fw - 0.5 ? Math.min(0, Math.max(fw - iw, x)) : (fw - iw) / 2;
+        y = ih >= fh - 0.5 ? Math.min(0, Math.max(fh - ih, y)) : (fh - ih) / 2;
       };
       const paint = () => {
         clamp();
-        pic.style.width = `${W * s}px`;
+        pic.style.width = `${W * s * k}px`;
         pic.style.height = `${H * s}px`;
         pic.style.transform = `translate(${x}px, ${y}px)`;
-        zoom.value = String(Math.round(((s - minS) / (maxS - minS)) * 1000));
+        zoom.value = String(Math.round(((s - minS()) / Math.max(1e-6, maxS() - minS())) * 1000));
+        width.value = String(Math.round(k * 100));
+        pct.textContent = `${Math.round(k * 100)}%`;
       };
-      const zoomTo = (ns, cx = fw / 2, cy = fh / 2) => {
-        const k = ns / s;
-        x = cx - (cx - x) * k;
-        y = cy - (cy - y) * k;
-        s = ns;
+      // keep the point under (cx, cy) fixed while scaling
+      const scaleAround = (ns, nk, cx = fw / 2, cy = fh / 2) => {
+        const ix = (cx - x) / (s * k), iy = (cy - y) / s;   // image coords under the point
+        s = ns; k = nk;
+        x = cx - ix * s * k;
+        y = cy - iy * s;
         paint();
       };
+      const zoomTo = (ns, cx, cy) => scaleAround(ns, k, cx, cy);
+
       layout();
-      s = coverS; x = (fw - W * s) / 2; y = (fh - H * s) / 2;
+      s = coverS(); x = (fw - W * s) / 2; y = (fh - H * s) / 2;
       paint();
 
       // drag + pinch
@@ -717,20 +735,30 @@ function openCropper(source, { aspect = IMAGE_ASPECT, outWidth = 1500 } = {}) {
       frame.addEventListener('pointerup', up);
       frame.addEventListener('pointercancel', up);
       frame.addEventListener('wheel', e => { e.preventDefault(); zoomTo(s * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
-      zoom.addEventListener('input', () => zoomTo(minS + (maxS - minS) * (zoom.value / 1000)));
-      wrap.querySelector('[data-fit]').onclick = () => zoomTo(minS);
-      wrap.querySelector('[data-fill]').onclick = () => zoomTo(coverS);
+      zoom.addEventListener('input', () => zoomTo(minS() + (maxS() - minS()) * (zoom.value / 1000)));
+      width.addEventListener('input', () => scaleAround(s, width.value / 100));
+      wrap.querySelector('[data-fit]').onclick = () => zoomTo(minS());
+      wrap.querySelector('[data-fill]').onclick = () => zoomTo(coverS());
+      wrap.querySelector('[data-stretch]').onclick = () => {
+        // stretch both ways so the whole photo exactly fills the frame
+        s = fh / H; k = (fw / W) / s; x = 0; y = 0;
+        paint();
+      };
+      wrap.querySelector('[data-reset]').onclick = () => {
+        k = 1; s = coverS(); x = (fw - W * s) / 2; y = (fh - H * s) / 2;
+        paint();
+      };
 
       const finish = blob => { URL.revokeObjectURL(url); wrap.remove(); resolve(blob); };
       wrap.querySelector('[data-cancel]').onclick = () => finish(null);
       wrap.querySelector('[data-done]').onclick = () => {
-        const outW = outWidth, outH = Math.round(outWidth / aspect), k = outW / fw;
+        const outW = outWidth, outH = Math.round(outWidth / aspect), f = outW / fw;
         const c = document.createElement('canvas');
         c.width = outW; c.height = outH;
         const ctx = c.getContext('2d');
         ctx.fillStyle = '#121212';
         ctx.fillRect(0, 0, outW, outH);
-        if (W * s < fw - 1 || H * s < fh - 1) {
+        if (W * s * k < fw - 1 || H * s < fh - 1) {
           // fill the gaps with a blurred, darkened copy of the photo
           const bs = Math.max(outW / W, outH / H);
           if ('filter' in ctx) ctx.filter = 'blur(40px) brightness(0.6)';
@@ -739,7 +767,7 @@ function openCropper(source, { aspect = IMAGE_ASPECT, outWidth = 1500 } = {}) {
           if (!('filter' in ctx)) { ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, outW, outH); }
         }
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, x * k, y * k, W * s * k, H * s * k);
+        ctx.drawImage(img, x * f, y * f, W * s * k * f, H * s * f);
         c.toBlob(b => finish(b), 'image/jpeg', 0.88);
       };
     };
